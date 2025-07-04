@@ -4,20 +4,15 @@ import "dotenv/config";
 import express from "express";
 import { serve } from "inngest/express";
 import connectDB from "./configs/db.js";
+import { stripeWebhooks } from "./controllers/stripeWebhooks.js";
 import { functions, inngest } from "./inngest/index.js";
 import adminRouter from "./routes/adminRoutes.js";
 import bookingRouter from "./routes/bookingRoutes.js";
 import showRouter from "./routes/showRoutes.js";
 import userRouter from "./routes/userRoutes.js";
-import { stripeWebhooks } from "./controllers/stripeWebhooks.js";
 
 const app = express();
 const port = 3000;
-
-//Middleware
-app.use(express.json());
-app.use(cors());
-app.use(clerkMiddleware());
 
 await connectDB();
 
@@ -29,6 +24,11 @@ app.use(
   }),
   stripeWebhooks
 );
+
+//Middleware
+app.use(express.json());
+app.use(cors());
+app.use(clerkMiddleware());
 
 //API Routes
 app.get("/", (req, res) => {
