@@ -7,15 +7,12 @@ export default function Footer() {
         <div className="md:max-w-96">
           <img className="w-36 h-auto" src={assets.logo} alt="logo" />
           <p className="mt-6 text-sm">
-            Lorem Ipsum has been the industry's standard dummy text ever since
-            the 1500s.
+            Experience seamless movie ticket booking with real-time seat selection, secure payments,
+            and instant confirmations. Your ultimate destination for discovering and booking the
+            latest movies in theaters near you.
           </p>
           <div className="flex items-center gap-2 mt-4">
-            <img
-              src={assets.googlePlay}
-              alt="google play"
-              className="h-9 w-auto"
-            />
+            <img src={assets.googlePlay} alt="google play" className="h-9 w-auto" />
             <img src={assets.appStore} alt="app store" className="h-9 w-auto" />
           </div>
         </div>
