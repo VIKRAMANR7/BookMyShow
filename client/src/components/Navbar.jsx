@@ -20,7 +20,7 @@ export default function Navbar() {
           src={assets.logo}
           onClick={() => navigate("/")}
           alt="logo"
-          className="w-72 h-auto"
+          className="w-36 md:w-48 lg:w-56 h-auto"
         />
       </Link>
       <div
