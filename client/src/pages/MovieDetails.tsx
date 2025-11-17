@@ -1,0 +1,157 @@
+import { Heart, PlayCircleIcon, StarIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { useNavigate, useParams } from "react-router-dom";
+
+import BlurCircle from "../components/BlurCircle";
+import DateSelect from "../components/DateSelect";
+import Loading from "../components/Loading";
+import MovieCard from "../components/MovieCard";
+import { useAppContext } from "../context/AppContext";
+import { timeFormat } from "../lib/timeFormat";
+import type { MovieItem, ShowResponse } from "../types/movie";
+
+export default function MovieDetails() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+
+  const movieId = id ?? "";
+
+  const [showData, setShowData] = useState<ShowResponse | null>(null);
+
+  const { movies, getToken, userId, fetchFavoriteMovies, favoriteMovies, imageBaseUrl, axios } =
+    useAppContext();
+
+  async function fetchShowDetails() {
+    try {
+      const { data } = await axios.get<ShowResponse>(`/api/show/${movieId}`);
+      if (data.success) {
+        setShowData(data);
+      }
+    } catch (err) {
+      console.error("fetchShowDetails error:", err);
+    }
+  }
+
+  async function handleFavorite() {
+    try {
+      if (!userId) return toast.error("Please log in to continue");
+
+      const token = await getToken();
+      const { data } = await axios.post(
+        "/api/user/update-favorite",
+        { movieId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (data.success) {
+        await fetchFavoriteMovies();
+        toast.success(data.message);
+      }
+    } catch (err) {
+      console.error("handleFavorite error:", err);
+    }
+  }
+
+  useEffect(() => {
+    if (movieId) fetchShowDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [movieId]);
+
+  if (!showData) return <Loading />;
+
+  const movie: MovieItem = showData.movie;
+
+  return (
+    <div className="px-6 md:px-16 lg:px-40 pt-30 md:pt-50">
+      <div className="flex flex-col md:flex-row gap-8 max-w-6xl mx-auto">
+        <img
+          src={imageBaseUrl + movie.poster_path}
+          alt={movie.title}
+          className="max-md:mx-auto rounded-xl h-104 max-w-70 object-cover"
+        />
+
+        <div className="relative flex flex-col gap-3">
+          <BlurCircle top="-100px" left="-100px" />
+
+          <p className="text-primary">{movie.original_language?.toUpperCase()}</p>
+
+          <h1 className="text-4xl font-semibold max-w-96 text-balance">{movie.title}</h1>
+
+          <div className="flex items-center gap-2 text-gray-300">
+            <StarIcon className="size-5 text-primary fill-primary" />
+            {movie.vote_average.toFixed(1)} User Rating
+          </div>
+
+          <p className="text-gray-400 mt-2 text-sm leading-tight max-w-xl">{movie.overview}</p>
+
+          <p className="text-gray-200">
+            {timeFormat(movie.runtime)} • {movie.genres.map((g) => g.name).join(", ")} •{" "}
+            {movie.release_date.split("-")[0]}
+          </p>
+
+          <div className="flex items-center flex-wrap gap-4 mt-4">
+            <button className="flex items-center gap-2 px-7 py-3 text-sm bg-gray-800 hover:bg-gray-900 transition rounded-md font-medium cursor-pointer active:scale-95">
+              <PlayCircleIcon className="size-5" /> Watch Trailer
+            </button>
+
+            <a
+              href="#dateSelect"
+              className="px-10 py-3 text-sm bg-primary hover:bg-primary-dull transition rounded-md font-medium cursor-pointer active:scale-95"
+            >
+              Buy Tickets
+            </a>
+
+            <button
+              onClick={handleFavorite}
+              className="bg-gray-700 p-2.5 rounded-full transition cursor-pointer active:scale-95"
+            >
+              <Heart
+                className={`size-5 ${
+                  favoriteMovies.some((m) => m._id === movieId) ? "fill-primary text-primary" : ""
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-lg font-medium mt-20">Your Favorite Cast</p>
+      <div className="overflow-x-auto no-scrollbar mt-8 pb-4">
+        <div className="flex items-center gap-4 w-max px-4">
+          {movie.casts.slice(0, 12).map((cast, i) => (
+            <div key={i} className="flex flex-col items-center text-center">
+              <img
+                src={imageBaseUrl + cast.profile_path}
+                className="rounded-full h-20 md:h-20 aspect-square object-cover"
+                alt={cast.name}
+              />
+              <p className="font-medium text-xs mt-3">{cast.name}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <DateSelect dateTime={showData.dateTime} id={movieId} />
+
+      <p className="text-lg font-medium mt-20 mb-8">You May Also Like</p>
+      <div className="flex flex-wrap max-sm:justify-center gap-8">
+        {movies.slice(0, 4).map((m) => (
+          <MovieCard key={m._id} movie={m} />
+        ))}
+      </div>
+
+      <div className="flex justify-center mt-20">
+        <button
+          onClick={() => {
+            navigate("/movies");
+            scrollTo(0, 0);
+          }}
+          className="px-10 py-3 text-sm bg-primary hover:bg-primary-dull transition rounded-md font-medium cursor-pointer"
+        >
+          Show More
+        </button>
+      </div>
+    </div>
+  );
+}
