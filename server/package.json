@@ -2,7 +2,7 @@
   "name": "bookmyshow-server",
   "version": "1.0.0",
   "description": "Backend for a BookMyShow-style ticket booking app built using Express, TypeScript, MongoDB,authentication, payments, and clean modular structure.",
-  "main": "dist/server.js",
+  "main": "src/server.ts",
   "type": "module",
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/server.ts",
