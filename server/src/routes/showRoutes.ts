@@ -16,10 +16,11 @@ const showRouter: Router = Router();
 showRouter.get("/trending", getTrendingMovies);
 showRouter.get("/home-trailers", getHomePageTrailers);
 showRouter.get("/all", getShows);
-showRouter.get("/:movieId", getShow);
 
-// ADMIN ONLY
+// ADMIN
 showRouter.get("/now-playing", protectAdmin, getNowPlayingMovies);
 showRouter.post("/add", protectAdmin, addShow);
+
+showRouter.get("/:movieId", getShow);
 
 export default showRouter;

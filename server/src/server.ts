@@ -1,7 +1,8 @@
 import express from "express";
-import type { Request, Response, NextFunction, ErrorRequestHandler } from "express";
+import type { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import "dotenv/config";
+import mongoose from "mongoose";
 import { clerkMiddleware } from "@clerk/express";
 import { serve } from "inngest/express";
 
@@ -14,13 +15,10 @@ import showRouter from "./routes/showRoutes.js";
 import userRouter from "./routes/userRoutes.js";
 import { validateEnv } from "./configs/validateEnv.js";
 
-// Validate all envs
 validateEnv();
 
 const app = express();
-
-// Database Connection
-await connectDB();
+const PORT = process.env.PORT || 5000;
 
 app.use(
   cors({
@@ -30,48 +28,41 @@ app.use(
         "http://localhost:5173",
         "https://book-my-show-green-seven.vercel.app",
       ];
+
       const isVercelPreview = origin?.endsWith(".vercel.app");
 
       if (!origin || whitelist.includes(origin) || isVercelPreview) {
         return callback(null, true);
       }
 
-      return callback(new Error("Not allowed by CORS"));
+      callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
 );
 
-// Stripe webhook (RAW body)
+// WEBHOOKS (Stripe requires raw body)
 app.use("/api/stripe", express.raw({ type: "application/json" }), stripeWebhooks);
 
-// Body Parser
 app.use(express.json());
-
-// Clerk
 app.use(clerkMiddleware());
-
-// Request Logger
 app.use((req: Request, _res: Response, next: NextFunction) => {
   console.log(`📍 ${req.method} ${req.path}`);
   next();
 });
-
-// Health Check
+// HEALTH CHECK
 app.get("/", (_req: Request, res: Response) => {
   res.send("Server is Live");
 });
 
-// Inngest
 app.use("/api/inngest", serve({ client: inngest, functions }));
 
-// Routes
 app.use("/api/show", showRouter);
 app.use("/api/booking", bookingRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/user", userRouter);
 
-// Error Class
+// GLOBAL ERROR HANDLER
 export class AppError extends Error {
   statusCode: number;
 
@@ -81,8 +72,7 @@ export class AppError extends Error {
   }
 }
 
-// Global Error Handler
-const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error("⚠️ Error:", err);
 
   if (err instanceof AppError) {
@@ -96,8 +86,36 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     status: "error",
     message: "Internal Server Error",
   });
-};
+});
 
-app.use(errorHandler);
+// START SERVER
+async function start() {
+  try {
+    await connectDB();
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running at http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ Failed to start server:", err);
+    process.exit(1);
+  }
+}
 
-export default app;
+void start();
+
+// GRACEFUL SHUTDOWN
+async function gracefulShutdown(): Promise<void> {
+  console.log("⛔ Shutting down gracefully...");
+  await mongoose.connection.close().catch((err) => console.error(err));
+  process.exit(1);
+}
+
+process.on("uncaughtException", (err) => {
+  console.error("💥 Uncaught Exception:", err);
+  void gracefulShutdown();
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("💥 Unhandled Rejection:", reason);
+  void gracefulShutdown();
+});
