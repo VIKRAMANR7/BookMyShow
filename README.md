@@ -428,7 +428,14 @@ pnpm build
 vercel --prod
 ```
 
-### Backend → Railway / Render
+### Backend → Vercel
+
+Backend is deployed as a serverless Express app:
+
+Live URL:
+➡️ https://bookmyshow-server-fawn.vercel.app
+
+Add environment variables in Vercel settings.
 
 ```bash
 cd server
@@ -472,7 +479,7 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-**Project Link:** [https://github.com/yourusername/bookmyshow-clone](https://github.com/yourusername/bookmyshow-clone)
+**Project Link:**:https://github.com/VIKRAMANR7/BookMyShow
 
 ---
 

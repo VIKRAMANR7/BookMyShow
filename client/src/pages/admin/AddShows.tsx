@@ -109,7 +109,7 @@ export default function AddShows() {
 
       const showsInput = Object.entries(dateTimeSelection).map(([date, times]) => ({
         date,
-        times,
+        time: times,
       }));
 
       const payload = {
