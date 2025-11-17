@@ -30,8 +30,6 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-
-    "isolatedModules": true,
     "noEmitOnError": false,
 
     "skipLibCheck": true,
