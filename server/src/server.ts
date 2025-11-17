@@ -19,15 +19,17 @@ validateEnv();
 
 const app = express();
 
-// --------------------------
-// Database Connection (Vercel OK)
-// --------------------------
+// Database Connection
 await connectDB();
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      const whitelist = [process.env.CLIENT_URL, "http://localhost:5173"];
+      const whitelist = [
+        process.env.CLIENT_URL,
+        "http://localhost:5173",
+        "https://book-my-show-green-seven.vercel.app",
+      ];
       const isVercelPreview = origin?.endsWith(".vercel.app");
 
       if (!origin || whitelist.includes(origin) || isVercelPreview) {
