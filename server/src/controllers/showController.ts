@@ -141,14 +141,21 @@ export const getHomePageTrailers = async (_req: Request, res: Response) => {
 /* GET /api/show/now-playing (ADMIN) */
 export const getNowPlayingMovies = async (_req: Request, res: Response) => {
   try {
-    const data = await tmdbGet<TMDBListResponse<TMDBMovie>>("/movie/now_playing");
+    const data = await tmdbGet<TMDBListResponse<TMDBMovie>>("/movie/now_playing?region=US");
 
-    return res.json({ success: true, movies: data.results });
+    const movies = data.results ?? [];
+
+    return res.json({
+      success: true,
+      movies,
+      total: movies.length,
+    });
   } catch (err) {
     console.error("Now playing error:", err instanceof Error ? err.message : String(err));
 
-    return res.status(500).json({
-      success: false,
+    return res.json({
+      success: true,
+      movies: [],
       message: "Failed to fetch now playing movies",
     });
   }
