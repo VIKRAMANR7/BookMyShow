@@ -1,267 +1,395 @@
-# 🎬 BookMyShow Clone — Full‑Stack Movie Ticket Booking Platform
 
-A production-ready movie ticket booking platform inspired by BookMyShow, featuring real-time seat selection, secure payments, TMDB integration, Redis caching, and a fully functional Admin Dashboard.
+# ✨ BookMyShow Clone — Production Ready MERN + Vite + Stripe + Inngest (2025)
+
+<p align="center">
+  <img src="client/public/screenshots/homepage.png" width="800"/>
+</p>
 
 ---
 
-## 📸 Screenshots
+## 🌟 Overview
 
-All screenshots should be stored at:
+This is a **production‑grade BookMyShow Clone**, engineered with a modern, enterprise‑level stack combining **React 19**, **Vite**, **TypeScript**, **Express.js**, **MongoDB**, **Clerk Authentication**, **Stripe Checkout**, and **Inngest serverless workflows**.
+
+The goal of this project is to replicate a **real‑world ticket booking platform**, complete with:
+
+✔ Real‑time seat locking  
+✔ Automatic seat release for unpaid bookings  
+✔ Full admin panel  
+✔ Live payment confirmation using Stripe Webhooks  
+✔ Trending movies & trailers from TMDB  
+✔ Favorite movie system using Clerk metadata  
+✔ Production-ready code structure  
+
+---
+
+# 🧭 Table of Contents
+
+1. 🔥 Features  
+2. 🏗 Architecture Overview  
+3. 🗂 Project Folder Structure  
+4. ☁️ Backend Architecture  
+5. 🎨 Frontend Architecture  
+6. ⚙️ API Endpoints  
+7. 🔑 Environment Variables  
+8. 🛠 Installation & Setup  
+9. 🚀 Deployment Guide (Vercel + Render)  
+10. 🖼 Screenshots  
+11. 🧪 Workflows (Seat Locking, Inngest, Stripe)  
+12. 🙌 Credits  
+
+---
+
+# 🔥 1. Features
+
+## 🎬 User Features
+- Browse trending movies (TMDB API)
+- Watch trailers
+- Detailed movie view (with cast, genre, runtime)
+- Select show date
+- Select showtime
+- Seat layout with real‑time occupied seats
+- Seat selection limits
+- Stripe payment flow
+- Auto-redirect loading screen after Stripe return
+- Booking history (paid + unpaid)
+- “Pay now” for unpaid bookings
+- Add/remove favorites using Clerk private metadata
+- Fully responsive UI
+
+## 🛠 Admin Features
+- Add shows (multiple dates/times)
+- Fetch “Now Playing” movies from TMDB
+- Admin authentication middleware
+- View all active shows
+- View all bookings
+- Dashboard with:
+  - Total revenue
+  - Total bookings
+  - Active shows
+  - Total users
+- Real-time seat occupancy per show
+
+## ⚡ System Features
+- Auto‑expire booking after 10 minutes (Inngest)
+- Release seats back to show
+- Email confirmation (Nodemailer + Brevo SMTP)
+- In-memory caching for TMDB trending + trailers
+- Performance optimized React 19 + Vite build
+- Clean, scalable folder structure
+
+---
+
+# 🏗 2. Architecture Diagram
 
 ```
-client/public/screenshots/
+                           ┌─────────────────────────────┐
+                           │           CLIENT             │
+                           │  React 19 + Vite + TS        │
+                           │  TailwindCSS + Clerk Auth    │
+                           └───────────────┬──────────────┘
+                                           │ HTTPS
+                                           ▼
+                           ┌─────────────────────────────┐
+                           │         EXPRESS API         │
+                           │ Node.js + TypeScript        │
+                           ├───────────┬─────────────────┤
+                           │           │                 │
+                           ▼           ▼                 ▼
+                   Movie/Show      Booking API       Admin API
+                   Controller      Seat Locking      Dashboards
+                     TMDB API      Stripe Checkout    Analytics
+
+                           ┌─────────────────────────────┐
+                           │        MONGO DB (Atlas)      │
+                           │  Users / Movies / Shows      │
+                           │  Bookings / Seat Maps        │
+                           └──────────────────────────────┘
+
+                           ┌─────────────────────────────┐
+                           │          STRIPE             │
+                           │  Webhooks → payment update  │
+                           └─────────────────────────────┘
+
+                           ┌─────────────────────────────┐
+                           │          INNGEST            │
+                           │  Delayed Jobs:              │
+                           │  - Release seats            │
+                           │  - Delete expired bookings  │
+                           │  - Send confirmation email   │
+                           └──────────────────────────────┘
 ```
 
-### 🔐 Authentication
+---
 
-![Auth](client/public/screenshots/auth.png)
+# 🗂 3. Project Folder Structure
 
-### 🏠 Home Page
-
-![Home](client/public/screenshots/home.png)
-
-### 🎬 Movie Details
-
-![Details](client/public/screenshots/details.png)
-
-### 🪑 Seat Selection
-
-![Seats](client/public/screenshots/seats.png)
-
-### 🧾 Booking Confirmation
-
-![Booking](client/public/screenshots/booking.png)
-
-### ⭐ Movie Suggestions
-
-![Suggestions](client/public/screenshots/suggestions.png)
-
-### 🛠️ Admin Dashboard
-
-![Admin](client/public/screenshots/admin.png)
+```
+project/
+│── client/
+│   ├── public/
+│   │   └── screenshots/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── context/
+│   │   ├── lib/
+│   │   ├── assets/
+│   │   ├── types/
+│   │   └── App.tsx
+│   └── vite.config.ts
+│
+│── server/
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── inngest/
+│   │   ├── utils/
+│   │   ├── routes/
+│   │   ├── configs/
+│   │   └── index.ts
+│   └── package.json
+│
+└── README.md
+```
 
 ---
 
-## ✨ Key Features
+# ☁️ 4. Backend Architecture
 
-### 🎥 Movie Management
+### **Express + MongoDB + Stripe + Inngest**
 
-- TMDB Integration — Trending movies, cast, posters
-- Real‑time updates
-- Redis caching (Upstash)
+### 📌 Booking Flow (Core Logic)
+```
+User selects seats
+↓
+System checks if seats are free
+↓
+Booking document created (status: unpaid)
+↓
+Seats locked in show.occupiedSeats
+↓
+Stripe checkout session created
+↓
+Redirect user to Stripe
+↓
+Stripe webhook → Mark booking as paid
+↓
+Inngest job → Send confirmation email
+```
 
-### 🎫 Booking System
-
-- Interactive seat layout (A–J)
-- Max 5 seats per booking
-- Stripe Checkout payments
-- Double‑booking protection
-
-### 🔐 Authentication
-
-- Clerk authentication (Google, GitHub, Email)
-- JWT‑protected admin routes
-
-### ⚡ Performance
-
-- Redis caching for API responses
-- Smart invalidation on show updates
-
-### 📬 Email Automation
-
-- Booking confirmation
-- Show reminders
-- Admin announcement emails
-
-### 🎨 UI/UX
-
-- Responsive modern UI
-- TailwindCSS styling
-- Smooth transitions & loading states
+### 📌 Unpaid Booking Auto-Expiry (Inngest)
+```
+Booking created
+↓
+Inngest schedules job 10 mins later
+↓
+If booking.isPaid === false:
+    - release all seats
+    - delete booking
+```
 
 ---
 
-## 🛠️ Tech Stack
+# 🎨 5. Frontend Architecture
 
-### Frontend
-
-- React 19, TypeScript
-- Vite, TailwindCSS
-- Clerk Auth
+### Built with:
+- React 19
+- Context API
+- TailwindCSS
 - React Router
-- Axios
-- React Player
+- Clerk Authentication
+- Axios (shared instance)
 
-### Backend
-
-- Node.js + Express + TypeScript
-- MongoDB + Mongoose
-- Stripe
-- Inngest
-- Upstash Redis
-- TMDB API
-
----
-
-## 📂 Project Structure
-
-```
-📁 project-root/
-├── 📁 client/
-│   ├── public/screenshots/
-│   └── src/
-│       ├── components/
-│       ├── pages/
-│       ├── context/
-│       ├── types/
-│       └── assets/
-└── 📁 server/
-    ├── controllers/
-    ├── routes/
-    ├── models/
-    ├── configs/
-    ├── middleware/
-    ├── inngest/
-    └── server.ts
-```
+### Important Concepts:
+- AppContext handles:
+  - userId / email
+  - admin check
+  - movies
+  - favorites
+  - token getter
+- Pages split into:
+  - User pages
+  - Admin pages
+- Components:
+  - MovieCard
+  - HeroSection
+  - TrailersSection
+  - AdminSidebar
+  - DateSelect
+  - SeatLayout
 
 ---
 
-## 🚀 Getting Started
+# ⚙️ 6. API Endpoints (Overview)
 
-### 1️⃣ Clone Repository
-
+### **User**
 ```
-git clone https://github.com/VIKRAMANR7/BookMyShow
-cd BookMyShow
-```
-
-### 2️⃣ Install Dependencies
-
-```
-cd server && pnpm install
-cd ../client && pnpm install
+GET /api/user/bookings
+GET /api/user/favorites
+POST /api/user/update-favorite
 ```
 
-### 3️⃣ Environment Variables
-
-#### Backend (`server/.env`)
-
+### **Shows**
 ```
-PORT=3000
-MONGO_URI=mongodb+srv://...
-TMDB_ACCESS_TOKEN=
+GET /api/show/trending
+GET /api/show/home-trailers
+GET /api/show/all
+GET /api/show/:movieId
+POST /api/show/add (admin)
+GET /api/show/now-playing (admin)
+```
+
+### **Booking**
+```
+POST /api/booking/create
+GET /api/booking/seats/:showId
+```
+
+### **Admin**
+```
+GET /api/admin/is-admin
+GET /api/admin/dashboard
+GET /api/admin/all-shows
+GET /api/admin/all-bookings
+```
+
+---
+
+# 🔑 7. Environment Variables
+
+### **Client (`client/.env`)**
+```
+VITE_CLERK_PUBLISHABLE_KEY=
+VITE_BASE_URL=http://localhost:5000
+VITE_CURRENCY=₹
+VITE_TMDB_IMAGE_BASE_URL=https://image.tmdb.org/t/p/w500
+```
+
+### **Server (`server/.env`)**
+```
+MONGODB_URI=
+CLERK_SECRET_KEY=
+CLERK_PUBLISHABLE_KEY=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
+TMDB_ACCESS_TOKEN=
+SMTP_USER=
+SMTP_PASS=
+SENDER_EMAIL=
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
-INNGEST_EVENT_KEY=
-INNGEST_SIGNING_KEY=
-```
-
-#### Frontend (`client/.env`)
-
-```
-VITE_BASE_URL=http://localhost:3000
-VITE_CLERK_PUBLISHABLE_KEY=
-VITE_CLOUDINARY_BASE=
 ```
 
 ---
 
-## ▶️ Run Development Servers
+# 🛠 8. Installation & Setup
 
-### Backend:
-
+### **Clone Repo**
 ```
-cd server
+git clone yourrepo.git
+cd project
+```
+
+### **Client Setup**
+```
+cd client
+pnpm install
 pnpm dev
 ```
 
-### Frontend:
-
+### **Server Setup**
 ```
-cd client
+cd server
+pnpm install
 pnpm dev
 ```
 
-### Inngest Dev Server:
-
-```
-cd server
-npx inngest-cli@latest dev
-```
-
-Access at: **http://localhost:5173**
-
 ---
 
-## 📡 API Overview
+# 🚀 9. Deployment Guide
 
-### Movies & Shows
+### **Frontend — Vercel**
+- Vite supported natively
+- Add env vars
+- Set output = `dist`
+- Add vercel.json rewrite
 
-- `GET /api/show/trending`
-- `GET /api/show/home-trailers`
-- `GET /api/show/:movieId`
-- `POST /api/show/add` (Admin)
-
-### Booking
-
-- `POST /api/booking/create`
-- `GET /api/booking/seats/:showId`
-
-### User
-
-- `GET /api/user/bookings`
-- `POST /api/user/update-favorite`
-
-### Admin
-
-- `GET /api/admin/dashboard`
-- `GET /api/admin/all-shows`
-- `GET /api/admin/all-bookings`
-
----
-
-## 🚀 Deployment (Vercel)
-
-### Frontend Deploy
-
+### **Backend — Render / Railway**
+- Set build command:
 ```
-cd client
+pnpm install
 pnpm build
-vercel --prod
+pnpm start
 ```
-
-### Backend Deploy
-
-```
-cd server
-pnpm build
-```
-
-Set env vars → deploy via Git → add Stripe webhook.
+- Add env vars
+- Enable Webhooks publicly
 
 ---
 
-## 🤝 Contributing
+# 🖼 10. Screenshots
 
-1. Fork repo
-2. Create feature branch
-3. Commit changes
-4. Open pull request
+### 🏠 Homepage
+![](client/public/screenshots/homepage.png)
+
+### 🎬 Movies List
+![](client/public/screenshots/movies-list.png)
+
+### 🎞 Movie Details
+![](client/public/screenshots/movie-details.png)
+
+### 🎟 Seat Selection
+![](client/public/screenshots/seat-selection.png)
+
+### 💳 Stripe Checkout
+![](client/public/screenshots/stripe-checkout.png)
+
+### ⭐ Favorites
+![](client/public/screenshots/my-bookings.png)
+
+### 📊 Admin Dashboard
+![](client/public/screenshots/admin-dashboard.png)
+
+### ➕ Add Shows
+![](client/public/screenshots/admin-add-shows.png)
+
+### 📚 All Bookings
+![](client/public/screenshots/admin-all-bookings.png)
 
 ---
 
-## 📝 License
+# 📡 11. Workflow Deep Dive
 
-ISC License
+## A) Real-Time Seat Selection
+- Seats locked immediately when booking created
+- Prevents double-booking race conditions
+- Locked seats stored in `show.occupiedSeats`
+
+## B) Stripe Webhook
+```
+checkout.session.completed →
+update booking →
+clear paymentLink →
+trigger Inngest event
+```
+
+## C) Inngest Seat Release
+- Uses delayed jobs
+- Ensures unpaid seats aren’t stuck
+- Auto cleans abandoned bookings
+
+## D) Email Notification
+- Sent when Stripe confirms payment
+- Shows title + time + date
 
 ---
 
-## ⭐ Support
+# 🙌 12. Credits
 
-If this project helped you, please ⭐ star the repo!
+Built by **Vikraman R**  
+Designed as a **full-scale production replica** of BookMyShow.
 
-Made with ❤️ by **Vikraman**
-Github: https://github.com/VIKRAMANR7
+---
+
+If you like this project, consider ⭐ starring the repository!
