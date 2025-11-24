@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express from "express";
 
 import {
   getAllBookings,
@@ -8,7 +8,7 @@ import {
 } from "../controllers/adminController.js";
 import { protectAdmin } from "../middleware/auth.js";
 
-const adminRouter: Router = Router();
+const adminRouter = express.Router();
 
 adminRouter.get("/is-admin", protectAdmin, isAdmin);
 adminRouter.get("/dashboard", protectAdmin, getDashboardData);

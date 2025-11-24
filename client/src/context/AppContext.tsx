@@ -1,15 +1,12 @@
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
-import axios from "axios";
-import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 import type { MovieItem } from "../types/movie";
+import api from "../lib/api";
 
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
-
-/** Context shape */
 interface AppContextState {
   fetchIsAdmin: () => Promise<void>;
   fetchFavoriteMovies: () => Promise<void>;
@@ -25,7 +22,6 @@ interface AppContextState {
   favoriteMovies: MovieItem[];
 
   navigate: (path: string) => void;
-  axios: typeof axios;
   imageBaseUrl: string;
 }
 
@@ -36,22 +32,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [movies, setMovies] = useState<MovieItem[]>([]);
   const [favoriteMovies, setFavoriteMovies] = useState<MovieItem[]>([]);
 
-  const imageBaseUrl = import.meta.env.VITE_TMDB_IMAGE_BASE_URL;
-
   const { user } = useUser();
+  const { getToken } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const userId = user?.id ?? null;
   const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
+  const imageBaseUrl = import.meta.env.VITE_TMDB_IMAGE_BASE_URL;
 
-  const { getToken } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  /** Admin check */
   async function fetchIsAdmin(): Promise<void> {
     try {
       const token = await getToken();
-
-      const { data } = await axios.get("/api/admin/is-admin", {
+      const { data } = await api.get("/api/admin/is-admin", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -61,49 +54,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
         toast.error("You are not an admin");
         navigate("/");
       }
-    } catch (err) {
-      console.error("fetchIsAdmin error:", err);
+    } catch {
+      /* UI already handles fallback */
     }
   }
 
-  /** Fetch all movies from backend */
   async function refreshMovies(): Promise<void> {
     try {
-      const { data } = await axios.get("/api/show/all");
-      if (data.success) {
-        setMovies(data.shows);
-      } else {
-        toast.error(data.message);
-      }
-    } catch (err) {
-      console.error("refreshMovies error:", err);
+      const { data } = await api.get("/api/show/all");
+      if (data.success) setMovies(data.shows);
+      else toast.error(data.message);
+    } catch {
+      /* silent fail is fine for homepage */
     }
   }
 
-  /** Fetch favorite movies from backend */
   async function fetchFavoriteMovies(): Promise<void> {
     try {
       const token = await getToken();
-      const { data } = await axios.get("/api/user/favorites", {
+      const { data } = await api.get("/api/user/favorites", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (data.success) {
-        setFavoriteMovies(data.movies);
-      } else {
-        toast.error(data.message);
-      }
-    } catch (err) {
-      console.error("fetchFavoriteMovies error:", err);
+      if (data.success) setFavoriteMovies(data.movies);
+      else toast.error(data.message);
+    } catch {
+      /* avoid breaking UI */
     }
   }
 
-  /** Initial load — movies */
   useEffect(() => {
     refreshMovies();
   }, []);
 
-  /** Load user-specific data */
   useEffect(() => {
     if (userId) {
       fetchIsAdmin();
@@ -125,8 +108,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     movies,
     favoriteMovies,
 
-    navigate: (path: string) => navigate(path),
-    axios,
+    navigate: (path) => navigate(path),
     imageBaseUrl,
   };
 
@@ -135,8 +117,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 export function useAppContext(): AppContextState {
   const ctx = useContext(AppContext);
-  if (!ctx) {
-    throw new Error("useAppContext must be used within AppProvider");
-  }
+  if (!ctx) throw new Error("useAppContext must be used inside AppProvider");
   return ctx;
 }

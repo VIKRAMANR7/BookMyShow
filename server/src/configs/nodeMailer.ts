@@ -1,20 +1,14 @@
 import nodemailer from "nodemailer";
 
-import { AppError } from "../server.js";
-
 interface EmailOptions {
   to: string;
   subject: string;
   body: string;
 }
 
-function validateEnv(): void {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.SENDER_EMAIL) {
-    throw new AppError("❌ Missing SMTP environment variables", 500);
-  }
+function validateEmailEnv(): boolean {
+  return Boolean(process.env.SMTP_USER && process.env.SMTP_PASS && process.env.SENDER_EMAIL);
 }
-
-validateEnv();
 
 const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
@@ -26,20 +20,22 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
-  try {
-    const { to, subject, body } = options;
+  if (!validateEmailEnv()) {
+    console.error("Missing email environment variables");
+    return;
+  }
 
+  try {
     await transporter.sendMail({
       from: process.env.SENDER_EMAIL,
-      to,
-      subject,
-      html: body,
+      to: options.to,
+      subject: options.subject,
+      html: options.body,
     });
 
-    console.log(`📨 Email sent to ${to}`);
-  } catch (error) {
-    console.error("Email sending failed:", error);
-    throw new AppError("Failed to send email", 500);
+    console.log(`Email sent to ${options.to}`);
+  } catch {
+    console.error("Failed to send email");
   }
 }
 

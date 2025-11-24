@@ -4,6 +4,7 @@ import { PlayCircleIcon } from "lucide-react";
 
 import { useAppContext } from "../context/AppContext";
 import BlurCircle from "./BlurCircle";
+import api from "../lib/api";
 
 interface TrailerItem {
   movieId: number;
@@ -19,7 +20,7 @@ interface TrailerResponse {
 
 /* Displays the main trailer player*/
 export default function TrailersSection() {
-  const { axios, getToken } = useAppContext();
+  const { getToken } = useAppContext();
 
   const [trailers, setTrailers] = useState<TrailerItem[]>([]);
   const [currentTrailer, setCurrentTrailer] = useState<TrailerItem | null>(null);
@@ -27,7 +28,7 @@ export default function TrailersSection() {
   const loadTrailers = useCallback(async () => {
     try {
       const token = await getToken();
-      const { data } = await axios.get<TrailerResponse>("/api/show/home-trailers", {
+      const { data } = await api.get<TrailerResponse>("/api/show/home-trailers", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -38,7 +39,7 @@ export default function TrailersSection() {
     } catch (err) {
       console.error("Trailer load error:", err);
     }
-  }, [axios, getToken]);
+  }, [getToken]);
 
   useEffect(() => {
     loadTrailers();
@@ -64,26 +65,27 @@ export default function TrailersSection() {
       </div>
 
       {/* Trailer Thumbnails */}
-      <div className="group grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4 mt-8 max-w-5xl mx-auto">
-        {trailers.map((t) => (
-          <button
-            key={t.movieId}
-            type="button"
-            onClick={() => setCurrentTrailer(t)}
-            className="relative hover:-translate-y-1 transition select-none"
-          >
-            <img
-              src={t.image}
-              alt={t.title}
-              className="w-full h-full rounded-lg object-cover brightness-90"
-            />
-
-            <PlayCircleIcon
-              strokeWidth={1.6}
-              className="absolute top-1/2 left-1/2 w-10 h-10 -translate-x-1/2 -translate-y-1/2 text-white"
-            />
-          </button>
-        ))}
+      <div className="overflow-x-auto no-scrollbar mt-8 mx-auto max-w-[960px]">
+        <div className="flex gap-4 w-max">
+          {trailers.map((t) => (
+            <button
+              key={t.movieId}
+              type="button"
+              onClick={() => setCurrentTrailer(t)}
+              className="relative hover:-translate-y-1 transition select-none"
+            >
+              <img
+                src={t.image}
+                alt={t.title}
+                className="w-48 h-28 rounded-lg object-cover brightness-90"
+              />
+              <PlayCircleIcon
+                strokeWidth={1.6}
+                className="absolute top-1/2 left-1/2 w-10 h-10 -translate-x-1/2 -translate-y-1/2 text-white"
+              />
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );

@@ -1,13 +1,14 @@
 import mongoose from "mongoose";
 
 export interface IShow {
+  _id: string;
   movie: string;
   showDateTime: Date;
   showPrice: number;
   occupiedSeats: Record<string, string>;
 }
 
-const showSchema = new mongoose.Schema(
+const showSchema = new mongoose.Schema<IShow>(
   {
     movie: { type: String, required: true, ref: "Movie" },
     showDateTime: { type: Date, required: true },
@@ -17,4 +18,6 @@ const showSchema = new mongoose.Schema(
   { minimize: false, timestamps: true }
 );
 
-export default mongoose.model<IShow>("Show", showSchema);
+const Show = mongoose.model<IShow>("Show", showSchema);
+
+export default Show;

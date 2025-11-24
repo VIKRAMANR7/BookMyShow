@@ -1,80 +1,52 @@
-import { redis } from "../configs/redis.js";
+const store = new Map<string, { data: unknown; expireAt: number }>();
 
-const PREFIX = "bms:";
-const DEFAULT_TTL = 6 * 60 * 60; // 6 hours
+const DEFAULT_TTL = 4 * 60 * 60 * 1000; // 4 hours in ms
 
-/* Safely parse Redis JSON. */
-function parse<T>(value: string | null): T | null {
-  if (!value) return null;
+/* Get value if not expired */
+export function getCache<T>(key: string): T | null {
+  const entry = store.get(key);
+  if (!entry) return null;
 
-  try {
-    return JSON.parse(value) as T;
-  } catch {
+  if (Date.now() > entry.expireAt) {
+    store.delete(key);
     return null;
   }
+  return entry.data as T;
 }
 
-/* Build redis key with prefix. */
-function key(k: string) {
-  return `${PREFIX}${k}`;
+/* Set value with TTL */
+export function setCache<T>(key: string, value: T, ttlMs = DEFAULT_TTL): void {
+  store.set(key, {
+    data: value,
+    expireAt: Date.now() + ttlMs,
+  });
 }
 
-/* Get cached value. */
-export async function getCache<T>(k: string): Promise<T | null> {
-  try {
-    const raw = await redis.get<string | null>(key(k));
-    return parse<T>(raw);
-  } catch (err) {
-    console.error("Redis GET failed:", err);
-    return null;
-  }
+/* Remove key */
+export function delCache(key: string): void {
+  store.delete(key);
 }
 
-/* Set cache with TTL. */
-export async function setCache<T>(k: string, value: T, ttl = DEFAULT_TTL): Promise<void> {
-  try {
-    await redis.set(key(k), JSON.stringify(value), { ex: ttl });
-  } catch (err) {
-    console.error("Redis SET failed:", err);
-  }
-}
-
-/* Delete cache key. */
-export async function delCache(k: string): Promise<void> {
-  try {
-    await redis.del(key(k));
-  } catch (err) {
-    console.error("Redis DEL failed:", err);
-  }
-}
-
-/* Cache-or-fetch helper. */
+/* Cache-or-fetch */
 export async function cacheFetch<T>(
-  k: string,
+  key: string,
   fetchFn: () => Promise<T>,
-  ttl = DEFAULT_TTL
+  ttlMs = DEFAULT_TTL
 ): Promise<T> {
-  const cached = await getCache<T>(k);
-
+  const cached = getCache<T>(key);
   if (cached !== null) {
-    console.log("CACHE HIT →", k);
+    console.log("CACHE HIT →", key);
     return cached;
   }
 
-  console.log("CACHE MISS →", k);
-
+  console.log("CACHE MISS →", key);
   const fresh = await fetchFn();
-
-  // non-blocking
-  setCache(k, fresh, ttl).catch(() => {});
-
+  setCache(key, fresh, ttlMs);
   return fresh;
 }
 
 /* Predefined keys */
 export const CacheKeys = {
-  homeTrailers: "trailers:home",
   trending: "movies:trending",
-  tmdbMovie: (id: number) => `tmdb:movie:${id}`,
-  tmdbCredits: (id: number) => `tmdb:credits:${id}`,
-} as const;
+  homeTrailers: "movies:home-trailers",
+};

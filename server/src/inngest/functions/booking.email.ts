@@ -1,69 +1,53 @@
-import type mongoose from "mongoose";
-
 import { inngest } from "../client.js";
 import Booking from "../../models/Booking.js";
 import sendEmail from "../../configs/nodeMailer.js";
 
-/**
- * Minimal types used when populating booking -> show -> movie and booking -> user
- */
-interface PopulatedMovie {
-  title: string;
-}
-
 interface PopulatedShow {
-  movie: PopulatedMovie;
+  movie: { title: string };
   showDateTime: Date;
 }
 
 interface PopulatedUser {
-  email: string;
   name: string;
+  email: string;
 }
 
-interface BookingConfirmationEvent {
-  data: {
-    bookingId: string;
-  };
-}
-
-/**
- * Sends booking confirmation email after a successful booking event.
- * Logic preserved exactly; replaced uncertain casts with explicit expected types.
- */
 export const sendBookingConfirmationEmail = inngest.createFunction(
   { id: "send-booking-confirmation-email" },
   { event: "app/show.booked" },
 
-  async ({ event }: { event: BookingConfirmationEvent }) => {
-    const booking = await Booking.findById(event.data.bookingId)
+  async ({ event }) => {
+    const bookingId = event.data.bookingId;
+    if (!bookingId) return;
+
+    const booking = await Booking.findById(bookingId)
       .populate({
         path: "show",
-        populate: { path: "movie", model: "Movie", select: "title" },
+        populate: { path: "movie", select: "title" },
       })
       .populate("user", "email name");
 
-    if (!booking) return;
+    if (!booking || !booking.show || !booking.user) return;
 
-    const show = booking.show as unknown as mongoose.Document & PopulatedShow;
-    const movie = show.movie;
-    const user = booking.user as unknown as mongoose.Document & PopulatedUser;
+    // Cast using `unknown` first to prevent TS structural overlap errors
+    const show = booking.show as unknown as PopulatedShow;
+    const user = booking.user as unknown as PopulatedUser;
 
-    const date = new Date(show.showDateTime);
+    const dateString = new Date(show.showDateTime).toLocaleString("en-US", {
+      timeZone: "Asia/Kolkata",
+    });
 
     await sendEmail({
       to: user.email,
-      subject: `Payment Confirmation: "${movie.title}" booked!`,
-      body: `<div>
-        <h2>Hi ${user.name},</h2>
-        <p>Your booking for <strong>${movie.title}</strong> is confirmed.</p>
-        <p>
-          <strong>Date:</strong> ${date.toLocaleString("en-US", {
-            timeZone: "Asia/Kolkata",
-          })}
-        </p>
-        <p>Enjoy the show 🍿</p>
-      </div>`,
+      subject: `Booking Confirmed: ${show.movie.title}`,
+      body: `
+        <div>
+          <h2>Hello ${user.name},</h2>
+          <p>Your booking for <strong>${show.movie.title}</strong> is confirmed.</p>
+          <p><strong>Showtime:</strong> ${dateString}</p>
+          <p>Enjoy your movie! 🍿</p>
+        </div>
+      `,
     });
   }
 );

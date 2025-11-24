@@ -1,168 +1,100 @@
-import https from "https";
-
+import type { Request, Response, NextFunction } from "express";
 import axios from "axios";
-import type { Request, Response } from "express";
 
 import Movie from "../models/Movie.js";
 import Show from "../models/Show.js";
-import { inngest } from "../inngest/index.js";
 import { cacheFetch, CacheKeys, delCache } from "../utils/cache.js";
-import type {
-  TMDBListResponse,
-  TMDBMovie,
-  TMDBMovieDetails,
-  TMDBCredits,
-  TMDBVideo,
-} from "../types/tmdb.js";
 
-/* TMDB CLIENT */
+import type { TMDBListResponse, TMDBMovie, TMDBVideo } from "../types/tmdb.js";
+
+/* TMDB client */
 const tmdb = axios.create({
   baseURL: "https://api.themoviedb.org/3",
   headers: { Authorization: `Bearer ${process.env.TMDB_ACCESS_TOKEN}` },
-  httpsAgent: new https.Agent({ keepAlive: false }),
-  timeout: 12000,
 });
 
-async function tmdbGet<T>(url: string): Promise<T> {
-  const res = await tmdb.get<T>(url);
-  return res.data;
-}
-
-/* Date + Time → UTC ISO */
-function makeShowDate(date: string, time: string): Date {
-  return new Date(`${date}T${time}:00.000Z`);
-}
-
-/* INNGEST Debounce */
-const notifyCache = new Set<string>();
-
-function debounceInngestSend(title: string) {
-  if (notifyCache.has(title)) return;
-  notifyCache.add(title);
-
-  setTimeout(() => notifyCache.delete(title), 8000);
-
-  inngest
-    .send({ name: "app/show.added", data: { movieTitle: title } })
-    .catch((e) => console.warn("Inngest send error:", e));
-}
-
-/* GET /api/show/trending */
-export const getTrendingMovies = async (_req: Request, res: Response) => {
+export async function getTrendingMovies(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
-    const movies = await cacheFetch<TMDBMovie[]>(
-      CacheKeys.trending,
-      async () => {
-        const data = await tmdbGet<TMDBListResponse<TMDBMovie>>("/trending/movie/week");
-        return data.results ?? [];
-      },
-      4 * 60 * 60
-    );
-
-    return res.json({ success: true, movies });
-  } catch (err) {
-    console.error("Trending error:", err instanceof Error ? err.message : String(err));
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch trending movies",
+    const movies = await cacheFetch<TMDBMovie[]>(CacheKeys.trending, async () => {
+      const data = await tmdb.get<TMDBListResponse<TMDBMovie>>("/trending/movie/week");
+      return data.data.results.slice(0, 8); // top 8
     });
-  }
-};
 
-/* GET /api/show/home-trailers */
-export const getHomePageTrailers = async (_req: Request, res: Response) => {
+    res.json({ success: true, movies });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getHomePageTrailers(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
-    const trailers = await cacheFetch<
-      Array<{
-        movieId: number;
-        title: string;
-        image: string;
-        videoUrl: string;
-      }>
-    >(
-      CacheKeys.homeTrailers,
-      async () => {
-        const pages = await Promise.all(
-          Array.from({ length: 5 }, (_, i) =>
-            tmdbGet<TMDBListResponse<TMDBMovie>>(`/trending/movie/week?page=${i + 1}`)
-          )
-        );
+    const trailers = await cacheFetch(CacheKeys.homeTrailers, async () => {
+      // 1 page trending → 20 movies
+      const data = await tmdb.get<TMDBListResponse<TMDBMovie>>("/trending/movie/week");
 
-        const movies = pages.flatMap((p) => p.results).slice(0, 80);
+      const topEight = data.data.results.slice(0, 8);
 
-        const results = await Promise.all(
-          movies.map((m) =>
-            tmdbGet<{ results: TMDBVideo[] }>(`/movie/${m.id}/videos`)
-              .then((v) => ({ movie: m, videos: v.results }))
-              .catch(() => null)
-          )
-        );
+      // Fetch trailer for each movie
+      const results = await Promise.all(
+        topEight.map(async (movie) => {
+          try {
+            const v = await tmdb.get<{ results: TMDBVideo[] }>(`/movie/${movie.id}/videos`);
 
-        /* Remove nulls → build trailer list */
-        const final = results
-          .flatMap((entry) => {
-            if (!entry) return [];
+            const vid =
+              v.data.results.find((x) => x.site === "YouTube" && x.type === "Trailer") ??
+              v.data.results.find((x) => x.site === "YouTube" && x.type === "Teaser");
 
-            const video =
-              entry.videos.find((v) => v.site === "YouTube" && v.type === "Trailer") ??
-              entry.videos.find((v) => v.site === "YouTube" && v.type === "Teaser");
+            if (!vid) return null;
 
-            if (!video) return [];
+            return {
+              movieId: movie.id,
+              title: movie.title,
+              image: `https://img.youtube.com/vi/${vid.key}/mqdefault.jpg`,
+              videoUrl: `https://www.youtube.com/watch?v=${vid.key}`,
+            };
+          } catch {
+            return null;
+          }
+        })
+      );
 
-            return [
-              {
-                movieId: entry.movie.id,
-                title: entry.movie.title,
-                image: `https://img.youtube.com/vi/${video.key}/mqdefault.jpg`,
-                videoUrl: `https://www.youtube.com/watch?v=${video.key}`,
-              },
-            ];
-          })
-          .slice(0, 8);
-
-        return final;
-      },
-      6 * 60 * 60
-    );
-
-    return res.json({ success: true, trailers });
-  } catch (err) {
-    console.error("Home trailers error:", err instanceof Error ? err.message : String(err));
-
-    return res.status(500).json({
-      success: false,
-      trailers: [],
-      message: "Failed to load homepage trailers",
+      return results.filter(Boolean);
     });
+
+    res.json({ success: true, trailers });
+  } catch (err) {
+    next(err);
   }
-};
+}
 
 /* GET /api/show/now-playing (ADMIN) */
-export const getNowPlayingMovies = async (_req: Request, res: Response) => {
+export async function getNowPlayingMovies(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
-    const data = await tmdbGet<TMDBListResponse<TMDBMovie>>("/movie/now_playing?region=US");
+    const data = await tmdb.get<TMDBListResponse<TMDBMovie>>("/movie/now_playing?region=US");
 
-    const movies = data.results ?? [];
-
-    return res.json({
+    res.json({
       success: true,
-      movies,
-      total: movies.length,
+      movies: data.data.results.slice(0, 20),
     });
   } catch (err) {
-    console.error("Now playing error:", err instanceof Error ? err.message : String(err));
-
-    return res.json({
-      success: true,
-      movies: [],
-      message: "Failed to fetch now playing movies",
-    });
+    next(err);
   }
-};
+}
 
 /* POST /api/show/add (ADMIN) */
-export const addShow = async (req: Request, res: Response) => {
+export async function addShow(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { movieId, showsInput, showPrice } = req.body as {
       movieId: string;
@@ -172,43 +104,29 @@ export const addShow = async (req: Request, res: Response) => {
 
     let movie = await Movie.findById(movieId);
 
-    /* Fetch & cache TMDB details only once */
+    // Fetch minimal details if not saved
     if (!movie) {
-      const [details, credits] = await Promise.all([
-        cacheFetch<TMDBMovieDetails>(
-          CacheKeys.tmdbMovie(Number(movieId)),
-          () => tmdbGet(`/movie/${movieId}`),
-          3600
-        ),
-
-        cacheFetch<TMDBCredits>(
-          CacheKeys.tmdbCredits(Number(movieId)),
-          () => tmdbGet(`/movie/${movieId}/credits`),
-          3600
-        ),
-      ]);
+      const details = await tmdb.get<TMDBMovie>(`/movie/${movieId}`);
 
       movie = await Movie.create({
         _id: movieId,
-        title: details.title,
-        overview: details.overview,
-        release_date: details.release_date,
-        poster_path: details.poster_path,
-        backdrop_path: details.backdrop_path,
-        genres: details.genres,
-        casts: credits.cast,
-        original_language: details.original_language,
-        tagline: details.tagline ?? "",
-        vote_average: details.vote_average,
-        runtime: details.runtime,
+        title: details.data.title,
+        poster_path: details.data.poster_path,
+        backdrop_path: details.data.backdrop_path,
+        overview: "",
+        release_date: details.data.release_date,
+        genres: [],
+        casts: [],
+        vote_average: details.data.vote_average,
+        runtime: 0,
       });
     }
 
-    /* Build show docs */
+    // Build show documents
     const docs = showsInput.flatMap((s) =>
       s.time.map((t) => ({
         movie: movieId,
-        showDateTime: makeShowDate(s.date, t),
+        showDateTime: new Date(`${s.date}T${t}:00.000Z`),
         showPrice,
         occupiedSeats: {},
       }))
@@ -218,23 +136,17 @@ export const addShow = async (req: Request, res: Response) => {
       await Show.insertMany(docs);
     }
 
-    debounceInngestSend(movie.title);
+    // Clear trailers cache so UI updates
+    delCache(CacheKeys.homeTrailers);
 
-    delCache(CacheKeys.homeTrailers).catch(() => {});
-
-    return res.json({ success: true, message: "Show added successfully" });
+    res.json({ success: true, message: "Show added successfully" });
   } catch (err) {
-    console.error("Add show error:", err instanceof Error ? err.message : String(err));
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to add show",
-    });
+    next(err);
   }
-};
+}
 
 /* GET /api/show/all */
-export const getShows = async (_req: Request, res: Response) => {
+export async function getShows(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const shows = await Show.find({
       showDateTime: { $gte: new Date() },
@@ -244,19 +156,14 @@ export const getShows = async (_req: Request, res: Response) => {
 
     const movies = Array.from(new Set(shows.map((s) => s.movie)));
 
-    return res.json({ success: true, shows: movies });
+    res.json({ success: true, shows: movies });
   } catch (err) {
-    console.error("Get shows error:", err instanceof Error ? err.message : String(err));
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch shows",
-    });
+    next(err);
   }
-};
+}
 
 /* GET /api/show/:movieId */
-export const getShow = async (req: Request, res: Response) => {
+export async function getShow(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { movieId } = req.params;
 
@@ -272,11 +179,8 @@ export const getShow = async (req: Request, res: Response) => {
     for (const s of shows) {
       const iso = s.showDateTime.toISOString();
       const date = iso.split("T")[0];
-      if (!date) continue;
 
-      if (!grouped[date]) {
-        grouped[date] = [];
-      }
+      if (!grouped[date]) grouped[date] = [];
 
       grouped[date].push({
         time: s.showDateTime,
@@ -284,13 +188,8 @@ export const getShow = async (req: Request, res: Response) => {
       });
     }
 
-    return res.json({ success: true, movie, dateTime: grouped });
+    res.json({ success: true, movie, dateTime: grouped });
   } catch (err) {
-    console.error("Get show error:", err instanceof Error ? err.message : String(err));
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch show",
-    });
+    next(err);
   }
-};
+}

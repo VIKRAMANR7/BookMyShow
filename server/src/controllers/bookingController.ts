@@ -1,15 +1,16 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import Stripe from "stripe";
 
-import { inngest } from "../inngest/index.js";
 import Booking from "../models/Booking.js";
 import Show from "../models/Show.js";
+import { inngest } from "../inngest/index.js";
+import { getUserId } from "../utils/auth.js";
 
+/* Ensures the populated movie contains a title. */
 interface PopulatedMovie {
   title: string;
 }
 
-/* Type guard to ensure movie is populated correctly */
 function isPopulatedMovie(movie: unknown): movie is PopulatedMovie {
   return (
     typeof movie === "object" &&
@@ -19,25 +20,28 @@ function isPopulatedMovie(movie: unknown): movie is PopulatedMovie {
   );
 }
 
-/* Check if selected seats are already taken for the given show */
+/* Checks if selected seats are free for the given show. */
 async function checkSeatsAvailability(showId: string, selectedSeats: string[]): Promise<boolean> {
   try {
     const show = await Show.findById(showId);
     if (!show) return false;
 
     const occupied = show.occupiedSeats ?? {};
-
     return !selectedSeats.some((seat) => Boolean(occupied[seat]));
-  } catch (err) {
-    console.error("Seat availability error:", err);
+  } catch {
     return false;
   }
 }
 
-/* POST /api/booking/create */
-export const createBooking = async (req: Request, res: Response): Promise<void> => {
+/* Creates a booking, locks seats, creates Stripe session,
+    and triggers auto-expiry workflow . */
+export async function createBooking(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
-    const { userId } = req.auth();
+    const userId = getUserId(req);
     const { showId, selectedSeats } = req.body as {
       showId: string;
       selectedSeats: string[];
@@ -50,30 +54,22 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // 1. Check availability
+    // 1. Check if seats are free
     const available = await checkSeatsAvailability(showId, selectedSeats);
     if (!available) {
-      res.status(400).json({
-        success: false,
-        message: "Selected seats are already taken",
-      });
+      res.status(400).json({ success: false, message: "Selected seats are already taken" });
       return;
     }
 
-    // 2. Get show with movie details
+    // 2. Fetch show + movie details
     const showData = await Show.findById(showId).populate("movie");
-
     if (!showData || !showData.movie) {
       res.status(404).json({ success: false, message: "Show not found" });
       return;
     }
 
-    // Validate populated movie
     if (!isPopulatedMovie(showData.movie)) {
-      res.status(500).json({
-        success: false,
-        message: "Movie details not loaded correctly",
-      });
+      res.status(500).json({ success: false, message: "Movie details not loaded correctly" });
       return;
     }
 
@@ -95,7 +91,7 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
     await showData.save();
 
     // 5. Create Stripe checkout session
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
 
     const session = await stripe.checkout.sessions.create({
       success_url: `${origin}/loading/my-bookings`,
@@ -112,30 +108,30 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
       ],
       mode: "payment",
       metadata: { bookingId: booking._id.toString() },
-      expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // 30 min expiry
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // 30 minutes
     });
 
     booking.paymentLink = session.url ?? "";
     await booking.save();
 
-    // 6. Trigger Inngest workflow to auto-cancel unpaid booking
+    // 6. Trigger delayed auto-cancel workflow
     await inngest.send({
       name: "app/checkpayment",
       data: { bookingId: booking._id.toString() },
     });
 
     res.status(200).json({ success: true, url: session.url });
-  } catch (error) {
-    console.error("Booking creation error:", error);
-    res.status(500).json({
-      success: false,
-      message: error instanceof Error ? error.message : "Booking failed",
-    });
+  } catch (err) {
+    next(err);
   }
-};
+}
 
-/* GET /api/booking/seats/:showId */
-export const getOccupiedSeats = async (req: Request, res: Response): Promise<void> => {
+/* Returns list of seats currently occupied for a show. */
+export async function getOccupiedSeats(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
     const { showId } = req.params;
 
@@ -146,13 +142,8 @@ export const getOccupiedSeats = async (req: Request, res: Response): Promise<voi
     }
 
     const occupiedSeats = Object.keys(show.occupiedSeats ?? {});
-
     res.status(200).json({ success: true, occupiedSeats });
-  } catch (error) {
-    console.error("Get occupied seats error:", error);
-    res.status(500).json({
-      success: false,
-      message: error instanceof Error ? error.message : "Internal Server Error",
-    });
+  } catch (err) {
+    next(err);
   }
-};
+}

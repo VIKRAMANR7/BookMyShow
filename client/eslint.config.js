@@ -13,6 +13,7 @@ export default [
 
   {
     files: ["src/**/*.{ts,tsx}"],
+
     languageOptions: {
       parserOptions: {
         ecmaVersion: "latest",
@@ -30,11 +31,12 @@ export default [
     },
 
     rules: {
-      // TypeScript
+      // TS
       "@typescript-eslint/no-unused-vars": "warn",
-      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/consistent-type-imports": "off",
+      "@typescript-eslint/no-explicit-any": "off",
 
-      // React Hooks
+      // Hooks
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
 

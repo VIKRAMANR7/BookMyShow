@@ -18,7 +18,8 @@ import ListBookings from "./pages/admin/ListBookings";
 import ListShows from "./pages/admin/ListShows";
 
 export default function App() {
-  const isAdminRoute = useLocation().pathname.startsWith("/admin");
+  const { pathname } = useLocation();
+  const isAdminRoute = pathname.startsWith("/admin");
   const { user } = useAppContext();
   return (
     <>

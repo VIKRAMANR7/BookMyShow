@@ -4,11 +4,12 @@ import Title from "../../components/admin/Title";
 import { useAppContext } from "../../context/AppContext";
 import { dateFormat } from "../../lib/dateFormat";
 import type { AdminShowItem } from "../../types/show";
+import api from "../../lib/api";
 
 export default function ListShows() {
   const currency = import.meta.env.VITE_CURRENCY ?? "₹";
 
-  const { axios, getToken, user } = useAppContext();
+  const { getToken, user } = useAppContext();
 
   const [shows, setShows] = useState<AdminShowItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,7 +17,7 @@ export default function ListShows() {
   async function getAllShows(): Promise<void> {
     try {
       const token = await getToken();
-      const { data } = await axios.get<{ shows: AdminShowItem[] }>("/api/admin/all-shows", {
+      const { data } = await api.get<{ shows: AdminShowItem[] }>("/api/admin/all-shows", {
         headers: { Authorization: `Bearer ${token}` },
       });
 

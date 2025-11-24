@@ -5,9 +5,10 @@ import Title from "../../components/admin/Title";
 import { useAppContext } from "../../context/AppContext";
 import { dateFormat } from "../../lib/dateFormat";
 import type { AdminBookingItem } from "../../types/booking";
+import api from "../../lib/api";
 
 export default function ListBookings() {
-  const { axios, getToken, userId } = useAppContext();
+  const { getToken, userId } = useAppContext();
   const currency = import.meta.env.VITE_CURRENCY ?? "₹";
 
   const [bookings, setBookings] = useState<AdminBookingItem[]>([]);
@@ -17,7 +18,7 @@ export default function ListBookings() {
     try {
       const token = await getToken();
 
-      const { data } = await axios.get("/api/admin/all-bookings", {
+      const { data } = await api.get("/api/admin/all-bookings", {
         headers: { Authorization: `Bearer ${token}` },
       });
 

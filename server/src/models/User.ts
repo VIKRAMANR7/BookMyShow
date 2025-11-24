@@ -7,7 +7,7 @@ export interface IUser {
   image: string;
 }
 
-const userSchema = new mongoose.Schema(
+const userSchema = new mongoose.Schema<IUser>(
   {
     _id: { type: String, required: true },
     name: { type: String, required: true },
@@ -17,4 +17,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model<IUser>("User", userSchema);
+const User = mongoose.model<IUser>("User", userSchema);
+
+export default User;

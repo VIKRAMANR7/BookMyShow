@@ -1,30 +1,29 @@
 import type { Request, Response, NextFunction } from "express";
 import { clerkClient, getAuth } from "@clerk/express";
 
-import { AppError } from "../server.js";
-
-export async function protectAdmin(
+export const protectAdmin = async (
   req: Request,
-  _res: Response,
+  res: Response,
   next: NextFunction
-): Promise<void> {
+): Promise<void> => {
   try {
     const { userId } = getAuth(req);
 
     if (!userId) {
-      return next(new AppError("Unauthorized", 401));
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
     }
 
     const user = await clerkClient.users.getUser(userId);
-
     const role = user.privateMetadata?.role;
 
     if (role !== "admin") {
-      return next(new AppError("Forbidden: Admins only", 403));
+      res.status(403).json({ success: false, message: "Admins only" });
+      return;
     }
 
     next();
-  } catch (error) {
-    next(error instanceof AppError ? error : new AppError("Internal Server Error", 500));
+  } catch {
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
-}
+};

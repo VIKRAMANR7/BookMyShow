@@ -10,24 +10,22 @@ import MovieCard from "../components/MovieCard";
 import { useAppContext } from "../context/AppContext";
 import { timeFormat } from "../lib/timeFormat";
 import type { MovieItem, ShowResponse } from "../types/movie";
+import api from "../lib/api";
 
 export default function MovieDetails() {
   const navigate = useNavigate();
   const { id } = useParams();
-
   const movieId = id ?? "";
 
   const [showData, setShowData] = useState<ShowResponse | null>(null);
 
-  const { movies, getToken, userId, fetchFavoriteMovies, favoriteMovies, imageBaseUrl, axios } =
+  const { movies, getToken, userId, fetchFavoriteMovies, favoriteMovies, imageBaseUrl } =
     useAppContext();
 
   async function fetchShowDetails() {
     try {
-      const { data } = await axios.get<ShowResponse>(`/api/show/${movieId}`);
-      if (data.success) {
-        setShowData(data);
-      }
+      const { data } = await api.get<ShowResponse>(`/api/show/${movieId}`);
+      if (data.success) setShowData(data);
     } catch (err) {
       console.error("fetchShowDetails error:", err);
     }
@@ -38,7 +36,7 @@ export default function MovieDetails() {
       if (!userId) return toast.error("Please log in to continue");
 
       const token = await getToken();
-      const { data } = await axios.post(
+      const { data } = await api.post(
         "/api/user/update-favorite",
         { movieId },
         { headers: { Authorization: `Bearer ${token}` } }

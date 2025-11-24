@@ -1,32 +1,16 @@
 {
   "name": "bookmyshow-client",
-  "private": true,
   "version": "1.0.0",
-  "description": "Production-grade BookMyShow clone frontend built with React 19, TypeScript, Vite, TailwindCSS, and Clerk authentication. Fully typed UI architecture with reusable components, global state management, protected admin routes, responsive layouts, and optimized rendering. Clean, scalable, interview-friendly codebase aligned with modern MERN best practices.",
+  "description": "Frontend for a BookMyShow-style movie ticket booking app built with React, Vite, TypeScript, TailwindCSS, and Clerk authentication. Handles movie browsing, trailers, seat selection, payments, and admin dashboard features.",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "lint": "eslint \"src\"",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json,md}\""
   },
-  "keywords": [
-    "react",
-    "typescript",
-    "vite",
-    "tailwindcss",
-    "clerk",
-    "mern",
-    "bookmyshow",
-    "movies",
-    "ticketing",
-    "frontend"
-  ],
-  "author": "Vikraman R",
-  "license": "ISC",
   "dependencies": {
     "@clerk/clerk-react": "^5.32.0",
     "@tailwindcss/vite": "^4.1.10",
@@ -55,10 +39,5 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.0.4"
-  },
-  "engines": {
-    "node": ">=20.0.0",
-    "pnpm": ">=9.0.0"
-  },
-  "packageManager": "pnpm@9.15.4"
+  }
 }

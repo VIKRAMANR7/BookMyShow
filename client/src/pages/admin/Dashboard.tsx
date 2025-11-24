@@ -13,13 +13,14 @@ import BlurCircle from "../../components/BlurCircle";
 import Loading from "../../components/Loading";
 import { useAppContext } from "../../context/AppContext";
 import { dateFormat } from "../../lib/dateFormat";
+import api from "../../lib/api";
 
 import type { DashboardData } from "../../types/dashboard";
 
 export default function Dashboard() {
   const currency = import.meta.env.VITE_CURRENCY ?? "₹";
 
-  const { axios, getToken, user, imageBaseUrl } = useAppContext();
+  const { getToken, user, imageBaseUrl } = useAppContext();
 
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     totalBookings: 0,
@@ -35,7 +36,7 @@ export default function Dashboard() {
     try {
       const token = await getToken();
 
-      const { data } = await axios.get<{
+      const { data } = await api.get<{
         success: boolean;
         dashboardData: DashboardData;
       }>("/api/admin/dashboard", {

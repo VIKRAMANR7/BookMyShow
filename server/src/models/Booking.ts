@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 export interface IBooking {
+  _id: string;
   user: string;
   show: string;
   amount: number;
@@ -9,7 +10,7 @@ export interface IBooking {
   paymentLink?: string;
 }
 
-const bookingSchema = new mongoose.Schema(
+const bookingSchema = new mongoose.Schema<IBooking>(
   {
     user: { type: String, required: true, ref: "User" },
     show: { type: String, required: true, ref: "Show" },
@@ -21,4 +22,6 @@ const bookingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model<IBooking>("Booking", bookingSchema);
+const Booking = mongoose.model<IBooking>("Booking", bookingSchema);
+
+export default Booking;

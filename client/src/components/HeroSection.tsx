@@ -4,6 +4,7 @@ import { ArrowRight, CalendarIcon } from "lucide-react";
 
 import { GENRE_MAP } from "../constants/tmdbGenres";
 import { useAppContext } from "../context/AppContext";
+import api from "../lib/api";
 
 interface HeroMovie {
   title: string;
@@ -27,7 +28,7 @@ interface TMDBTrendingMovie {
  */
 export default function HeroSection() {
   const navigate = useNavigate();
-  const { axios, getToken } = useAppContext();
+  const { getToken } = useAppContext();
 
   const [heroMovies, setHeroMovies] = useState<HeroMovie[]>([]);
   const [index, setIndex] = useState(0);
@@ -37,7 +38,7 @@ export default function HeroSection() {
     async function loadMovies() {
       try {
         const token = await getToken();
-        const { data } = await axios.get("/api/show/trending", {
+        const { data } = await api.get("/api/show/trending", {
           headers: { Authorization: `Bearer ${token}` },
         });
 

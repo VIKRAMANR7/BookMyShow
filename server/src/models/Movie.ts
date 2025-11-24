@@ -27,7 +27,7 @@ export interface IMovie {
   runtime: number;
 }
 
-const movieSchema = new mongoose.Schema(
+const movieSchema = new mongoose.Schema<IMovie>(
   {
     _id: { type: String, required: true },
     title: { type: String, required: true },
@@ -45,4 +45,6 @@ const movieSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model<IMovie>("Movie", movieSchema);
+const Movie = mongoose.model<IMovie>("Movie", movieSchema);
+
+export default Movie;

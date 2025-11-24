@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express from "express";
 
 import {
   addShow,
@@ -10,7 +10,7 @@ import {
 } from "../controllers/showController.js";
 import { protectAdmin } from "../middleware/auth.js";
 
-const showRouter: Router = Router();
+const showRouter = express.Router();
 
 // PUBLIC
 showRouter.get("/trending", getTrendingMovies);

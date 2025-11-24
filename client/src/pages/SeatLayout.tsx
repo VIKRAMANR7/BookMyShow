@@ -8,6 +8,7 @@ import Loading from "../components/Loading";
 import { useAppContext } from "../context/AppContext";
 import { isoTimeFormat } from "../lib/isoTimeFormat";
 import { assets } from "../assets/assets";
+import api from "../lib/api";
 
 import type { SeatTime, ShowResponse, SeatStatusResponse } from "../types/show";
 
@@ -27,11 +28,11 @@ export default function SeatLayout() {
   const [showData, setShowData] = useState<ShowResponse | null>(null);
   const [occupiedSeats, setOccupiedSeats] = useState<string[]>([]);
 
-  const { axios, getToken, userId } = useAppContext();
+  const { getToken, userId } = useAppContext();
 
   async function fetchShow() {
     try {
-      const { data } = await axios.get<ShowResponse>(`/api/show/${id}`);
+      const { data } = await api.get<ShowResponse>(`/api/show/${id}`);
       if (data.success) {
         setShowData(data);
       }
@@ -42,7 +43,7 @@ export default function SeatLayout() {
 
   async function fetchOccupiedSeats(showId: string) {
     try {
-      const { data } = await axios.get<SeatStatusResponse>(`/api/booking/seats/${showId}`);
+      const { data } = await api.get<SeatStatusResponse>(`/api/booking/seats/${showId}`);
 
       if (data.success) {
         setOccupiedSeats(data.occupiedSeats);
@@ -106,7 +107,7 @@ export default function SeatLayout() {
 
       const token = await getToken();
 
-      const { data } = await axios.post(
+      const { data } = await api.post(
         "/api/booking/create",
         { showId: selectedTime.showId, selectedSeats },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -132,7 +133,6 @@ export default function SeatLayout() {
     if (selectedTime) {
       fetchOccupiedSeats(selectedTime.showId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTime]);
 
   if (!showData || !date) return <Loading />;

@@ -1,21 +1,23 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { clerkClient, type User } from "@clerk/express";
-
 import Booking from "../models/Booking.js";
 import Movie from "../models/Movie.js";
 
+/** Extract favorites from Clerk metadata */
 interface UserPrivateMetadata {
   favorites?: string[];
 }
 
-/* Extract favorites from a Clerk user object.*/
 function getFavoriteIds(user: User): string[] {
   const meta = user.privateMetadata as UserPrivateMetadata | undefined;
   return meta?.favorites ?? [];
 }
 
-/* GET /api/user/bookings */
-export const getUserBookings = async (req: Request, res: Response): Promise<void> => {
+export async function getUserBookings(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
     const { userId } = req.auth();
     if (!userId) {
@@ -31,17 +33,16 @@ export const getUserBookings = async (req: Request, res: Response): Promise<void
       .sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, bookings });
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({
-      success: false,
-      message: error instanceof Error ? error.message : "Internal Server Error",
-    });
+  } catch (err) {
+    next(err);
   }
-};
+}
 
-/* POST /api/user/update-favorite */
-export const updateFavorite = async (req: Request, res: Response): Promise<void> => {
+export async function updateFavorite(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
     const { userId } = req.auth();
     const movieId = req.body.movieId as string | undefined;
@@ -52,10 +53,8 @@ export const updateFavorite = async (req: Request, res: Response): Promise<void>
     }
 
     const user = await clerkClient.users.getUser(userId);
-
     const favorites = getFavoriteIds(user);
 
-    // Toggle favorite
     const updated = favorites.includes(movieId)
       ? favorites.filter((id) => id !== movieId)
       : [...favorites, movieId];
@@ -64,18 +63,13 @@ export const updateFavorite = async (req: Request, res: Response): Promise<void>
       privateMetadata: { favorites: updated },
     });
 
-    res.status(200).json({ success: true, message: "Favorite movies updated" });
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({
-      success: false,
-      message: error instanceof Error ? error.message : "Internal Server Error",
-    });
+    res.status(200).json({ success: true, message: "Favorites updated" });
+  } catch (err) {
+    next(err);
   }
-};
+}
 
-/* GET /api/user/favorites */
-export const getFavorites = async (req: Request, res: Response): Promise<void> => {
+export async function getFavorites(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { userId } = req.auth();
     if (!userId) {
@@ -89,11 +83,7 @@ export const getFavorites = async (req: Request, res: Response): Promise<void> =
     const movies = await Movie.find({ _id: { $in: favoriteIds } });
 
     res.status(200).json({ success: true, movies });
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({
-      success: false,
-      message: error instanceof Error ? error.message : "Internal Server Error",
-    });
+  } catch (err) {
+    next(err);
   }
-};
+}

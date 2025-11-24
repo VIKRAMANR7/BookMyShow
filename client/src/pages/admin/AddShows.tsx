@@ -6,6 +6,7 @@ import Loading from "../../components/Loading";
 import Title from "../../components/admin/Title";
 import { useAppContext } from "../../context/AppContext";
 import { kConverter } from "../../lib/kConverter";
+import api from "../../lib/api";
 
 import type { NowPlayingMovie } from "../../types/nowPlaying";
 
@@ -23,7 +24,7 @@ interface DateTimeSelection {
 export default function AddShows() {
   const currency = import.meta.env.VITE_CURRENCY ?? "₹";
 
-  const { axios, getToken, user, imageBaseUrl } = useAppContext();
+  const { getToken, user, imageBaseUrl } = useAppContext();
 
   const [nowPlayingMovies, setNowPlayingMovies] = useState<NowPlayingMovie[]>([]);
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
@@ -39,7 +40,7 @@ export default function AddShows() {
     try {
       const token = await getToken();
 
-      const { data } = await axios.get<{
+      const { data } = await api.get<{
         success: boolean;
         movies: NowPlayingMovie[];
       }>("/api/show/now-playing", {
@@ -120,7 +121,7 @@ export default function AddShows() {
 
       const token = await getToken();
 
-      const { data } = await axios.post("/api/show/add", payload, {
+      const { data } = await api.post("/api/show/add", payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

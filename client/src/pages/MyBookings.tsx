@@ -7,11 +7,12 @@ import { useAppContext } from "../context/AppContext";
 import { dateFormat } from "../lib/dateFormat";
 import { timeFormat } from "../lib/timeFormat";
 import type { BookingItem } from "../types/booking";
+import api from "../lib/api";
 
 export default function MyBookings() {
   const currency = import.meta.env.VITE_CURRENCY ?? "₹";
 
-  const { axios, getToken, userId, imageBaseUrl } = useAppContext();
+  const { getToken, userId, imageBaseUrl } = useAppContext();
 
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,7 +20,7 @@ export default function MyBookings() {
   async function getMyBookings(): Promise<void> {
     try {
       const token = await getToken();
-      const { data } = await axios.get("/api/user/bookings", {
+      const { data } = await api.get("/api/user/bookings", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
