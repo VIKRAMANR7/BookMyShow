@@ -1,107 +1,415 @@
-# 🎬 BookMyShow Clone - Production Ready MERN Stack
+# 🎬 BookMyShow Clone - Movie Ticket Booking Platform
 
-<p align="center">
-  <img src="client/public/screenshots/homepage.png" width="800" alt="BookMyShow Clone Homepage"/>
-</p>
+[![Live Demo](https://img.shields.io/badge/demo-live-success)](https://book-my-show-green-seven.vercel.app/)
+[![API Status](https://img.shields.io/badge/API-active-success)](https://bookmyshow-server-fawn.vercel.app/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19.1-61dafb)](https://react.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green)](https://nodejs.org/)
 
-<p align="center">
-  <strong>A full-stack ticket booking platform built with modern technologies</strong>
-</p>
+A full-stack movie ticket booking application inspired by BookMyShow, featuring real-time seat selection, automated booking workflows, secure payments, and an admin dashboard for show management.
 
-<p align="center">
-  <a href="https://book-my-show-green-seven.vercel.app/">🌐 Live Demo</a> •
-  <a href="#features">✨ Features</a> •
-  <a href="#tech-stack">🛠️ Tech Stack</a> •
-  <a href="#getting-started">🚀 Getting Started</a>
-</p>
+## 🌐 Live Deployment
 
----
+- **Frontend:** [https://book-my-show-green-seven.vercel.app/](https://book-my-show-green-seven.vercel.app/)
+- **Backend API:** [https://bookmyshow-server-fawn.vercel.app/](https://bookmyshow-server-fawn.vercel.app/)
 
-## 📋 Table of Contents
+## 📸 Screenshots
 
-- [Overview](#overview)
-- [Live Demo](#live-demo)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [API Documentation](#api-documentation)
-- [Deployment](#deployment)
-- [Screenshots](#screenshots)
-- [Workflows](#workflows)
-- [Contributing](#contributing)
-- [License](#license)
+### User Interface
 
----
+![Homepage](client/public/screenshots/homepage.png)
+_Homepage with trending movies and trailers_
 
-## 🎯 Overview
+![Movie Details](client/public/screenshots/movie-details.png)
+_Detailed movie information with cast, genres, and ratings_
 
-A **production-grade movie ticket booking platform** inspired by BookMyShow, featuring real-time seat management, secure payments, and automated workflows. Built with enterprise-level architecture and modern development practices.
+![Movies List](client/public/screenshots/movies-list.png)
+_Browse all currently showing movies_
 
-### Key Highlights
+![Seat Selection](client/public/screenshots/seat-selection.png)
+_Interactive seat selection with real-time availability_
 
-- 🔒 **Real-time Seat Locking** - Prevents double bookings with instant seat reservations
-- ⏰ **Smart Expiry System** - Auto-releases unpaid bookings after 10 minutes
-- 💳 **Secure Payments** - Stripe integration with webhook confirmations
-- 📧 **Email Notifications** - Automated booking confirmations via Nodemailer
-- 🎥 **Live Movie Data** - Integration with TMDB API for trending movies and trailers
-- 👤 **User Favorites** - Personalized movie collections using Clerk metadata
-- 🛡️ **Admin Dashboard** - Complete show management and analytics
-- 📱 **Fully Responsive** - Optimized for all device sizes
+![My Bookings](client/public/screenshots/my-bookings.png)
+_User booking history with payment status_
+
+![Stripe Checkout](client/public/screenshots/stripe-checkout.png)
+_Secure payment processing with Stripe_
+
+### Admin Dashboard
+
+![Admin Dashboard](client/public/screenshots/admin-dashboard.png)
+_Admin dashboard with revenue analytics and statistics_
+
+![Add Shows](client/public/screenshots/admin-add-shows.png)
+_Add new shows with date-time selection_
+
+![All Bookings](client/public/screenshots/admin-all-bookings.png)
+_Manage all platform bookings_
 
 ---
 
-## 🌐 Live Demo
+## 🏗️ System Architecture
 
-**Frontend:** [https://book-my-show-green-seven.vercel.app/](https://book-my-show-green-seven.vercel.app/)
-**Backend API:** [https://bookmyshow-server-fawn.vercel.app/](https://bookmyshow-server-fawn.vercel.app/)
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        A[React Frontend<br/>Vite + TypeScript]
+        B[TailwindCSS]
+        C[Clerk Auth]
+    end
 
-> **Note:** The backend may take a moment to wake up on first request (Vercel cold start).
+    subgraph "API Gateway"
+        D[Express.js Server<br/>TypeScript]
+        E[Clerk Middleware]
+        F[CORS Handler]
+    end
+
+    subgraph "Business Logic"
+        G[User Controller]
+        H[Booking Controller]
+        I[Show Controller]
+        J[Admin Controller]
+    end
+
+    subgraph "External Services"
+        K[Stripe Payment<br/>Gateway]
+        L[TMDB API<br/>Movie Data]
+        M[Brevo SMTP<br/>Email Service]
+        N[Upstash Redis<br/>Seat Locking]
+    end
+
+    subgraph "Background Jobs"
+        O[Inngest<br/>Workflow Engine]
+        P[Payment Verification<br/>10 min delay]
+        Q[Email Notification<br/>On booking success]
+    end
+
+    subgraph "Data Layer"
+        R[(MongoDB<br/>Primary Database)]
+    end
+
+    A --> D
+    C --> E
+    E --> D
+    F --> D
+
+    D --> G
+    D --> H
+    D --> I
+    D --> J
+
+    H --> K
+    I --> L
+    G --> R
+    H --> R
+    I --> R
+    J --> R
+
+    H --> N
+    K --> O
+    O --> P
+    O --> Q
+    Q --> M
+    P --> R
+```
 
 ---
 
-## ✨ Features
+## 🔄 Data Flow Diagram
+
+```mermaid
+flowchart TD
+    Start([User Opens App]) --> Auth{Authenticated?}
+
+    Auth -->|No| Login[Clerk Sign In]
+    Auth -->|Yes| Home[Browse Movies]
+    Login --> Home
+
+    Home --> MovieDetails[View Movie Details<br/>& Show Times]
+    MovieDetails --> SelectDate[Select Date & Time]
+    SelectDate --> SeatSelection[Interactive Seat Layout]
+
+    SeatSelection --> CheckAvail{Check Seat<br/>Availability}
+    CheckAvail -->|Available| LockSeats[Lock Seats in Redis<br/>+ Create Booking]
+    CheckAvail -->|Occupied| SeatSelection
+
+    LockSeats --> CreateStripe[Create Stripe<br/>Checkout Session]
+    CreateStripe --> TriggerWorkflow[Trigger Inngest<br/>Payment Check]
+    TriggerWorkflow --> Redirect[Redirect to Stripe]
+
+    Redirect --> Payment{User Pays?}
+
+    Payment -->|Success| Webhook[Stripe Webhook<br/>checkout.session.completed]
+    Webhook --> UpdateDB[Mark Booking as Paid<br/>Clear Payment Link]
+    UpdateDB --> SendEmail[Inngest: Send<br/>Confirmation Email]
+    SendEmail --> ShowBooking[Display in My Bookings]
+
+    Payment -->|Timeout| Wait10Min[Inngest Waits<br/>10 Minutes]
+    Wait10Min --> CheckPaid{Booking Paid?}
+    CheckPaid -->|No| ReleaseSeats[Release Seats<br/>Delete Booking]
+    CheckPaid -->|Yes| ShowBooking
+
+    ReleaseSeats --> End([End])
+    ShowBooking --> End
+
+    style Auth fill:#e1f5ff
+    style Payment fill:#fff3cd
+    style Webhook fill:#d4edda
+    style ReleaseSeats fill:#f8d7da
+```
+
+---
+
+## 🗄️ Database Schema
+
+```mermaid
+erDiagram
+    USER ||--o{ BOOKING : creates
+    SHOW ||--o{ BOOKING : "has bookings"
+    MOVIE ||--o{ SHOW : "scheduled in"
+
+    USER {
+        string _id PK "Clerk User ID"
+        string name
+        string email
+        string image
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    MOVIE {
+        string _id PK "TMDB Movie ID"
+        string title
+        string overview
+        string poster_path
+        string backdrop_path
+        string release_date
+        string original_language
+        string tagline
+        object[] genres "id, name"
+        object[] casts "id, name, profile_path, character"
+        number vote_average
+        number runtime
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    SHOW {
+        string _id PK
+        string movie FK "References Movie._id"
+        datetime showDateTime
+        number showPrice
+        object occupiedSeats "seat_id: user_id mapping"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    BOOKING {
+        string _id PK
+        string user FK "References User._id"
+        string show FK "References Show._id"
+        number amount
+        string[] bookedSeats
+        boolean isPaid "Default: false"
+        string paymentLink
+        timestamp createdAt
+        timestamp updatedAt
+    }
+```
+
+### Schema Relationships
+
+- **User → Booking:** One-to-Many (A user can have multiple bookings)
+- **Show → Booking:** One-to-Many (A show can have multiple bookings)
+- **Movie → Show:** One-to-Many (A movie can have multiple scheduled shows)
+
+---
+
+## 🧩 Component Architecture
+
+```mermaid
+graph TB
+    subgraph "Frontend Components"
+        direction TB
+
+        subgraph "Pages"
+            P1[Home]
+            P2[Movies]
+            P3[MovieDetails]
+            P4[SeatLayout]
+            P5[MyBookings]
+            P6[Favorite]
+            P7[Admin/Dashboard]
+            P8[Admin/AddShows]
+            P9[Admin/ListShows]
+            P10[Admin/ListBookings]
+        end
+
+        subgraph "Shared Components"
+            C1[Navbar]
+            C2[Footer]
+            C3[MovieCard]
+            C4[DateSelect]
+            C5[Loading]
+            C6[HeroSection]
+            C7[FeaturedSection]
+            C8[TrailersSection]
+            C9[BlurCircle]
+        end
+
+        subgraph "Admin Components"
+            AC1[AdminNavbar]
+            AC2[AdminSidebar]
+            AC3[Title]
+        end
+
+        subgraph "Context & State"
+            CTX[AppContext<br/>Global State]
+            AUTH[Clerk Auth<br/>Provider]
+        end
+    end
+
+    AUTH --> CTX
+    CTX --> P1
+    CTX --> P2
+    CTX --> P3
+    CTX --> P4
+    CTX --> P5
+    CTX --> P6
+    CTX --> P7
+    CTX --> P8
+
+    P1 --> C6
+    P1 --> C7
+    P1 --> C8
+
+    P2 --> C3
+    P3 --> C3
+    P3 --> C4
+    P6 --> C3
+
+    C1 --> AUTH
+
+    P7 --> AC1
+    P7 --> AC2
+    P8 --> AC1
+    P8 --> AC2
+```
+
+---
+
+## 🔀 API Request Flow
+
+```mermaid
+sequenceDiagram
+    participant Client as React App
+    participant Clerk as Clerk Auth
+    participant Express as Express Server
+    participant Auth as Auth Middleware
+    participant Controller as Controller
+    participant DB as MongoDB
+    participant External as External APIs<br/>(Stripe/TMDB/Redis)
+    participant Inngest as Inngest Worker
+    participant Email as Email Service
+
+    Note over Client,Email: Example: Create Booking Flow
+
+    Client->>Clerk: Get JWT Token
+    Clerk-->>Client: Return Token
+
+    Client->>Express: POST /api/booking/create<br/>Headers: Authorization Bearer {token}
+
+    Express->>Auth: Verify Token & Extract userId
+    Auth-->>Express: userId extracted
+
+    Express->>Controller: createBooking(req, res)
+
+    Controller->>DB: Check seat availability<br/>Show.findById(showId)
+    DB-->>Controller: Show data
+
+    Controller->>External: Lock seats in Redis<br/>Set temp reservation
+    External-->>Controller: Seats locked
+
+    Controller->>DB: Create Booking document<br/>Booking.create({...})
+    DB-->>Controller: Booking created
+
+    Controller->>DB: Update Show occupiedSeats<br/>Show.save()
+    DB-->>Controller: Seats marked occupied
+
+    Controller->>External: Create Stripe session<br/>stripe.checkout.sessions.create()
+    External-->>Controller: Session URL
+
+    Controller->>DB: Update booking.paymentLink<br/>Booking.save()
+    DB-->>Controller: Updated
+
+    Controller->>Inngest: Trigger app/checkpayment<br/>event with bookingId
+    Inngest-->>Controller: Event queued
+
+    Controller-->>Client: { success: true, url: stripeUrl }
+
+    Client->>External: Redirect to Stripe
+
+    Note over Inngest,Email: Background Process (10 min delay)
+
+    Inngest->>Inngest: Wait 10 minutes
+
+    Inngest->>DB: Check Booking.isPaid
+
+    alt Booking NOT Paid
+        Inngest->>DB: Release seats<br/>Delete Booking
+        DB-->>Inngest: Cleaned up
+    else Booking Paid
+        Note over Inngest: No action needed
+    end
+
+    Note over External,Email: Stripe Webhook Flow (on payment)
+
+    External->>Express: POST /api/stripe<br/>Webhook: checkout.session.completed
+
+    Express->>DB: Update Booking<br/>{ isPaid: true, paymentLink: '' }
+    DB-->>Express: Updated
+
+    Express->>Inngest: Trigger app/show.booked
+    Inngest-->>Express: Queued
+
+    Inngest->>DB: Fetch booking with<br/>populated show & user
+    DB-->>Inngest: Booking data
+
+    Inngest->>Email: Send confirmation email<br/>via Brevo SMTP
+    Email-->>Inngest: Email sent
+
+    Express-->>External: 200 OK
+```
+
+---
+
+## ✨ Key Features
 
 ### 🎟️ User Features
 
-- Browse trending and now-playing movies from TMDB
-- Watch movie trailers directly in the app
-- View detailed movie information (cast, genre, runtime, ratings)
-- Select show dates and times
-- Interactive seat selection with live availability
-- Configurable seat selection limits
-- Secure Stripe payment checkout
-- Booking confirmation page with auto-redirect
-- Comprehensive booking history (paid and unpaid)
-- One-click payment for pending bookings
-- Add/remove movies to favorites
-- Responsive design for mobile and desktop
+- **Movie Discovery:** Browse trending movies from TMDB with ratings and details
+- **Interactive Trailers:** Watch movie trailers directly on the platform
+- **Real-time Seat Selection:** Visual seat layout with instant availability updates
+- **Secure Payments:** Stripe integration with automatic checkout sessions
+- **Booking Management:** View all bookings with payment status and ticket details
+- **Favorites:** Save favorite movies for quick access
+- **Responsive Design:** Seamless experience across desktop, tablet, and mobile
 
-### 🎛️ Admin Features
+### 👨‍💼 Admin Features
 
-- Add new shows with multiple dates and times
-- Fetch "Now Playing" movies directly from TMDB
-- Role-based authentication middleware
-- View and manage all active shows
-- Monitor all bookings across the platform
-- Comprehensive dashboard with:
-  - Total revenue analytics
-  - Booking statistics
-  - Active shows count
-  - User metrics
-- Real-time seat occupancy tracking per show
+- **Dashboard Analytics:** Revenue, bookings, active shows, and user statistics
+- **Show Management:** Add shows with flexible date-time scheduling from TMDB's now-playing list
+- **Booking Overview:** View all platform bookings with user and payment information
+- **Show Listings:** Monitor all scheduled shows with reserved seats and earnings
 
-### ⚙️ System Features
+### 🔧 Technical Features
 
-- Automated booking expiry (10-minute timeout via Inngest)
-- Intelligent seat release mechanism
-- Email confirmations using Nodemailer + Brevo SMTP
-- In-memory caching for TMDB data (trending movies & trailers)
-- Optimized React 19 build with Vite
-- Type-safe development with TypeScript
-- Clean, scalable architecture
+- **Automated Seat Release:** Unpaid bookings auto-expire after 10 minutes using Inngest workflows
+- **Email Notifications:** Brevo SMTP integration for booking confirmations
+- **Caching Layer:** In-memory cache for trending movies and trailers (4-hour TTL)
+- **Redis Seat Locking:** Temporary seat reservations to prevent race conditions
+- **Webhook Processing:** Stripe webhooks for real-time payment verification
+- **Role-based Access:** Clerk metadata for admin authorization
 
 ---
 
@@ -109,90 +417,37 @@ A **production-grade movie ticket booking platform** inspired by BookMyShow, fea
 
 ### Frontend
 
-- **React 19** - Latest React with concurrent features
-- **Vite** - Lightning-fast build tool
-- **TypeScript** - Type-safe development
-- **TailwindCSS** - Utility-first styling
-- **React Router** - Client-side routing
-- **Clerk** - Authentication and user management
-- **Axios** - HTTP client with interceptors
+- **Framework:** React 19.1 with TypeScript
+- **Build Tool:** Vite 7.0
+- **Styling:** TailwindCSS 4.1 (utility-first CSS)
+- **Authentication:** Clerk React SDK
+- **Routing:** React Router DOM v7
+- **HTTP Client:** Axios
+- **Icons:** Lucide React
+- **Video Player:** React Player
+- **State Management:** Context API + Custom Hooks
+- **Notifications:** React Hot Toast
 
 ### Backend
 
-- **Node.js** - JavaScript runtime
-- **Express.js** - Web application framework
-- **TypeScript** - Type safety on the backend
-- **MongoDB** - NoSQL database
-- **Mongoose** - ODM for MongoDB
-- **Stripe** - Payment processing
-- **Inngest** - Serverless workflow engine
-- **Nodemailer** - Email service
-- **TMDB API** - Movie data integration
+- **Runtime:** Node.js 20+ with TypeScript
+- **Framework:** Express.js 4.21
+- **Database:** MongoDB (Mongoose ODM)
+- **Authentication:** Clerk Express SDK
+- **Payments:** Stripe API
+- **Movie Data:** TMDB API
+- **Email Service:** Nodemailer + Brevo SMTP
+- **Background Jobs:** Inngest (workflow orchestration)
+- **Caching:** Upstash Redis + In-memory cache
+- **Deployment:** Vercel (serverless functions)
 
 ### DevOps & Tools
 
-- **Vercel** - Frontend and backend deployment
-- **MongoDB Atlas** - Cloud database
-- **Clerk** - Authentication service
-- **Brevo (Sendinblue)** - SMTP email service
-- **Upstash Redis** - Caching layer
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         CLIENT LAYER                         │
-│                  React 19 + Vite + TypeScript               │
-│                  TailwindCSS + Clerk Auth                   │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           │ HTTPS (Axios)
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│                      EXPRESS API LAYER                       │
-│                 Node.js + TypeScript + Express              │
-├────────────────┬─────────────────┬──────────────────────────┤
-│                │                 │                          │
-│  Movie/Show    │   Booking API   │      Admin API          │
-│  Controller    │  Seat Locking   │    Dashboard & Analytics│
-│  TMDB API      │  Stripe         │    Show Management      │
-└────────────────┴─────────────────┴──────────────────────────┘
-                           │
-        ┌──────────────────┼──────────────────┐
-        │                  │                  │
-        ▼                  ▼                  ▼
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│   MONGODB    │  │    STRIPE    │  │   INNGEST    │
-│              │  │              │  │              │
-│ Users        │  │ Webhooks →   │  │ Delayed Jobs:│
-│ Movies       │  │ Payment      │  │ • Seat Expiry│
-│ Shows        │  │ Confirmation │  │ • Emails     │
-│ Bookings     │  │              │  │ • Cleanup    │
-└──────────────┘  └──────────────┘  └──────────────┘
-```
-
-### Data Flow: Booking Process
-
-```mermaid
-sequenceDiagram
-    User->>+Frontend: Select seats
-    Frontend->>+Backend: POST /api/booking/create
-    Backend->>+MongoDB: Check seat availability
-    MongoDB-->>-Backend: Seats available
-    Backend->>MongoDB: Lock seats & create booking
-    Backend->>+Stripe: Create checkout session
-    Stripe-->>-Backend: Return session URL
-    Backend-->>-Frontend: Redirect to Stripe
-    Frontend->>+Stripe: User completes payment
-    Stripe->>+Backend: Webhook: payment_success
-    Backend->>MongoDB: Update booking status
-    Backend->>+Inngest: Trigger email event
-    Inngest->>Email Service: Send confirmation
-    Backend-->>-Stripe: 200 OK
-    Stripe-->>-Frontend: Redirect to success page
-```
+- **Package Manager:** pnpm
+- **Code Quality:** ESLint + Prettier
+- **Type Safety:** TypeScript 5.9 (strict mode)
+- **Deployment:** Vercel
+- **Version Control:** Git
 
 ---
 
@@ -200,68 +455,89 @@ sequenceDiagram
 
 ```
 bookmyshow-clone/
-├── client/                          # Frontend application
+├── client/                          # Frontend React application
 │   ├── public/
-│   │   └── screenshots/             # App screenshots
+│   │   └── screenshots/            # UI screenshots
 │   ├── src/
-│   │   ├── components/              # Reusable UI components
-│   │   │   ├── MovieCard.tsx
+│   │   ├── assets/                 # Images, logos, icons
+│   │   ├── components/             # Reusable components
+│   │   │   ├── admin/             # Admin-specific components
+│   │   │   ├── BlurCircle.tsx
+│   │   │   ├── DateSelect.tsx
+│   │   │   ├── Footer.tsx
 │   │   │   ├── HeroSection.tsx
-│   │   │   ├── SeatLayout.tsx
-│   │   │   └── ...
-│   │   ├── pages/                   # Route pages
+│   │   │   ├── Loading.tsx
+│   │   │   ├── MovieCard.tsx
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── FeaturedSection.tsx
+│   │   │   └── TrailersSection.tsx
+│   │   ├── context/               # Global state management
+│   │   │   └── AppContext.tsx
+│   │   ├── lib/                   # Utility functions
+│   │   │   ├── api.ts
+│   │   │   ├── dateFormat.ts
+│   │   │   ├── isoTimeFormat.ts
+│   │   │   ├── kConverter.ts
+│   │   │   └── timeFormat.ts
+│   │   ├── pages/                 # Route pages
+│   │   │   ├── admin/            # Admin dashboard pages
+│   │   │   ├── Favorite.tsx
 │   │   │   ├── Home.tsx
 │   │   │   ├── MovieDetails.tsx
-│   │   │   ├── BookingPage.tsx
-│   │   │   ├── admin/               # Admin pages
-│   │   │   └── ...
-│   │   ├── context/                 # React Context
-│   │   │   └── AppContext.tsx
-│   │   ├── lib/                     # Utilities & configs
-│   │   │   ├── axios.ts
-│   │   │   └── utils.ts
-│   │   ├── types/                   # TypeScript types
-│   │   ├── assets/                  # Static assets
-│   │   ├── App.tsx                  # Root component
-│   │   └── main.tsx                 # Entry point
-│   ├── vite.config.ts               # Vite configuration
-│   ├── tailwind.config.js           # TailwindCSS config
-│   └── package.json
-│
-├── server/                          # Backend application
-│   ├── src/
-│   │   ├── controllers/             # Route controllers
-│   │   │   ├── userController.ts
-│   │   │   ├── showController.ts
-│   │   │   ├── bookingController.ts
-│   │   │   └── adminController.ts
-│   │   ├── middleware/              # Express middleware
-│   │   │   ├── auth.ts
-│   │   │   └── adminAuth.ts
-│   │   ├── models/                  # Mongoose models
-│   │   │   ├── User.ts
-│   │   │   ├── Show.ts
-│   │   │   └── Booking.ts
-│   │   ├── routes/                  # API routes
-│   │   │   ├── userRoutes.ts
-│   │   │   ├── showRoutes.ts
-│   │   │   ├── bookingRoutes.ts
-│   │   │   └── adminRoutes.ts
-│   │   ├── inngest/                 # Inngest workflows
-│   │   │   ├── client.ts
-│   │   │   └── functions.ts
-│   │   ├── configs/                 # Configuration files
-│   │   │   ├── database.ts
-│   │   │   ├── stripe.ts
-│   │   │   └── tmdb.ts
-│   │   ├── utils/                   # Utility functions
-│   │   │   ├── email.ts
-│   │   │   └── cache.ts
-│   │   └── index.ts                 # Server entry point
+│   │   │   ├── Movies.tsx
+│   │   │   ├── MyBookings.tsx
+│   │   │   └── SeatLayout.tsx
+│   │   ├── types/                 # TypeScript interfaces
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   └── index.css
 │   ├── package.json
-│   └── tsconfig.json
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   └── vercel.json
 │
-└── README.md
+└── server/                          # Backend Express application
+    ├── src/
+    │   ├── configs/                # Configuration files
+    │   │   ├── db.ts              # MongoDB connection
+    │   │   ├── nodeMailer.ts      # SMTP setup
+    │   │   ├── redis.ts           # Upstash Redis client
+    │   │   └── validateEnv.ts     # Environment validation
+    │   ├── controllers/            # Business logic
+    │   │   ├── adminController.ts
+    │   │   ├── bookingController.ts
+    │   │   ├── showController.ts
+    │   │   ├── stripeWebhooks.ts
+    │   │   └── userController.ts
+    │   ├── inngest/               # Background job functions
+    │   │   ├── client.ts
+    │   │   ├── functions/
+    │   │   │   ├── booking.email.ts
+    │   │   │   └── booking.expire.ts
+    │   │   └── index.ts
+    │   ├── middleware/            # Express middleware
+    │   │   ├── asyncHandler.ts
+    │   │   ├── auth.ts           # Admin authorization
+    │   │   └── errorHandler.ts
+    │   ├── models/               # Mongoose schemas
+    │   │   ├── Booking.ts
+    │   │   ├── Movie.ts
+    │   │   ├── Show.ts
+    │   │   └── User.ts
+    │   ├── routes/               # API routes
+    │   │   ├── adminRoutes.ts
+    │   │   ├── bookingRoutes.ts
+    │   │   ├── showRoutes.ts
+    │   │   └── userRoutes.ts
+    │   ├── types/                # TypeScript types
+    │   ├── utils/                # Helper functions
+    │   │   ├── auth.ts
+    │   │   └── cache.ts
+    │   └── server.ts             # Entry point
+    ├── package.json
+    ├── tsconfig.json
+    ├── eslint.config.js
+    └── vercel.json
 ```
 
 ---
@@ -270,13 +546,62 @@ bookmyshow-clone/
 
 ### Prerequisites
 
-- Node.js 18+ installed
-- MongoDB Atlas account (or local MongoDB)
+- Node.js 20+ and pnpm installed
+- MongoDB Atlas account or local MongoDB instance
 - Clerk account for authentication
 - Stripe account for payments
-- TMDB API key
-- Brevo account for emails (optional)
-- pnpm, npm, or yarn package manager
+- TMDB API access token
+- Brevo account for email service
+- Upstash Redis account
+- Inngest account for background jobs
+
+### Environment Variables
+
+#### Client (`client/.env`)
+
+```env
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxx
+VITE_BASE_URL=http://localhost:5000
+VITE_CURRENCY=₹
+VITE_TMDB_IMAGE_BASE_URL=https://image.tmdb.org/t/p/w500
+```
+
+#### Server (`server/.env`)
+
+```env
+# Server Configuration
+PORT=5000
+NODE_ENV=development
+CLIENT_URL=http://localhost:5173
+
+# MongoDB
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/dbname
+
+# Clerk Authentication
+CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxx
+CLERK_SECRET_KEY=sk_test_xxxxxxxxxxxxx
+CLERK_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
+
+# Stripe Payments
+STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
+
+# TMDB API
+TMDB_ACCESS_TOKEN=eyJhbGciOiJIUzI1NiJ9...
+
+# Email Service (Brevo)
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_password
+SENDER_EMAIL=your@email.com
+
+# Inngest
+INNGEST_EVENT_KEY=your_inngest_event_key
+INNGEST_SIGNING_KEY=your_inngest_signing_key
+
+# Upstash Redis
+UPSTASH_REDIS_REST_URL=https://your-redis-url.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_redis_token
+```
 
 ### Installation
 
@@ -289,350 +614,226 @@ cd bookmyshow-clone
 
 2. **Install dependencies**
 
-**Frontend:**
-
 ```bash
-cd client
-pnpm install
-```
-
-**Backend:**
-
-```bash
+# Install server dependencies
 cd server
 pnpm install
+
+# Install client dependencies
+cd ../client
+pnpm install
 ```
 
-3. **Set up environment variables**
+3. **Configure environment variables**
 
-Create `.env` files in both `client` and `server` directories. See [Environment Variables](#environment-variables) section.
+```bash
+# Create .env files from examples
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+
+# Edit both files with your credentials
+```
 
 4. **Start development servers**
 
+```bash
+# Terminal 1: Start backend (from server/)
+pnpm dev
+
+# Terminal 2: Start frontend (from client/)
+pnpm dev
+```
+
+5. **Access the application**
+
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:5000
+
+---
+
+## 📡 API Endpoints
+
+### Public Routes
+
+| Method | Endpoint                     | Description                   |
+| ------ | ---------------------------- | ----------------------------- |
+| GET    | `/api/show/trending`         | Get trending movies from TMDB |
+| GET    | `/api/show/home-trailers`    | Get trailer data for homepage |
+| GET    | `/api/show/all`              | Get all available shows       |
+| GET    | `/api/show/:movieId`         | Get show details for a movie  |
+| GET    | `/api/booking/seats/:showId` | Get occupied seats for a show |
+
+### Protected User Routes
+
+| Method | Endpoint                    | Description                         |
+| ------ | --------------------------- | ----------------------------------- |
+| GET    | `/api/user/bookings`        | Get current user's bookings         |
+| POST   | `/api/user/update-favorite` | Add/remove favorite movie           |
+| GET    | `/api/user/favorites`       | Get user's favorite movies          |
+| POST   | `/api/booking/create`       | Create new booking + Stripe session |
+
+### Admin Routes (Protected)
+
+| Method | Endpoint                  | Description                 |
+| ------ | ------------------------- | --------------------------- |
+| GET    | `/api/admin/is-admin`     | Verify admin status         |
+| GET    | `/api/admin/dashboard`    | Get dashboard statistics    |
+| GET    | `/api/admin/all-shows`    | Get all scheduled shows     |
+| GET    | `/api/admin/all-bookings` | Get all platform bookings   |
+| GET    | `/api/show/now-playing`   | Get TMDB now-playing movies |
+| POST   | `/api/show/add`           | Add new show(s)             |
+
+### Webhooks
+
+| Method | Endpoint       | Description                       |
+| ------ | -------------- | --------------------------------- |
+| POST   | `/api/stripe`  | Stripe payment webhook (raw body) |
+| POST   | `/api/inngest` | Inngest function endpoint         |
+
+---
+
+## 🔐 Authentication & Authorization
+
+### User Authentication
+
+- **Provider:** Clerk (OAuth + Email/Password)
+- **Flow:**
+  1. User signs in via Clerk UI
+  2. Clerk issues JWT token
+  3. Frontend includes token in Authorization header
+  4. Backend validates token using `@clerk/express` middleware
+
+### Admin Authorization
+
+```typescript
+// Middleware checks Clerk user metadata
+const user = await clerkClient.users.getUser(userId);
+const role = user.privateMetadata?.role;
+
+if (role !== "admin") {
+  return res.status(403).json({ message: "Admins only" });
+}
+```
+
+To create an admin:
+
+1. Sign up normally through the app
+2. In Clerk Dashboard, find the user
+3. Add to `privateMetadata`: `{ "role": "admin" }`
+
+---
+
+## 💳 Payment Processing Flow
+
+1. **User selects seats** → `POST /api/booking/create`
+2. **Backend creates:**
+   - Booking document (isPaid: false)
+   - Locks seats in `Show.occupiedSeats`
+   - Stripe checkout session (30-min expiry)
+3. **User redirected to Stripe** → Enters payment details
+4. **On successful payment:**
+   - Stripe sends `checkout.session.completed` webhook
+   - Backend marks booking as paid
+   - Triggers `app/show.booked` event → Sends email
+5. **On timeout (10 min without payment):**
+   - Inngest `app/checkpayment` worker runs
+   - Releases seats, deletes unpaid booking
+
+---
+
+## 📧 Email Notifications
+
+**Triggered by:** `app/show.booked` Inngest event (after successful payment)
+
+**Email includes:**
+
+- User name
+- Movie title
+- Show date & time (Asia/Kolkata timezone)
+- Booking confirmation message
+
+**Provider:** Brevo SMTP via Nodemailer
+
+---
+
+## 🧪 Testing
+
+### Manual Testing Checklist
+
+- [ ] User signup/login via Clerk
+- [ ] Browse movies and view details
+- [ ] Select show date and time
+- [ ] Interactive seat selection (max 5 seats)
+- [ ] Stripe checkout flow (use test card: `4242 4242 4242 4242`)
+- [ ] Booking confirmation email received
+- [ ] View bookings in "My Bookings"
+- [ ] Admin login and dashboard access
+- [ ] Add shows from TMDB now-playing
+- [ ] View all bookings and shows in admin panel
+- [ ] Verify seat auto-release after 10 minutes (unpaid)
+
+### Test Stripe Integration
+
+Use Stripe test mode cards:
+
+- **Success:** `4242 4242 4242 4242`
+- **Decline:** `4000 0000 0000 0002`
+- Any future expiry date, any CVC
+
+---
+
+## 🌍 Deployment
+
+### Vercel Deployment (Current Setup)
+
 **Frontend:**
 
-```bash
-cd client
-pnpm dev
+```json
+// client/vercel.json
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
+}
 ```
 
 **Backend:**
 
-```bash
-cd server
-pnpm dev
-```
-
-The application will be available at:
-
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:5000`
-
----
-
-## 🔑 Environment Variables
-
-### Client `.env`
-
-```env
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxx
-VITE_BASE_URL=http://localhost:5000
-VITE_CURRENCY=₹
-VITE_TMDB_IMAGE_BASE_URL=https://image.tmdb.org/t/p/w500
-```
-
-### Server `.env`
-
-```env
-# Database
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/bookmyshow
-
-# Authentication
-CLERK_SECRET_KEY=sk_test_xxxxxxxxxxxxx
-CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxx
-
-# Payment
-STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxx
-STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
-
-# External APIs
-TMDB_ACCESS_TOKEN=xxxxxxxxxxxxx
-
-# Email Service (Brevo/Sendinblue)
-SMTP_USER=your-email@example.com
-SMTP_PASS=xxxxxxxxxxxxx
-SENDER_EMAIL=noreply@yourdomain.com
-
-# Caching (Upstash Redis)
-UPSTASH_REDIS_REST_URL=https://xxxxx.upstash.io
-UPSTASH_REDIS_REST_TOKEN=xxxxxxxxxxxxx
-
-# Server
-PORT=5000
-NODE_ENV=development
-```
-
----
-
-## 📡 API Documentation
-
-### User Routes
-
-| Method | Endpoint                    | Description                | Auth |
-| ------ | --------------------------- | -------------------------- | ---- |
-| GET    | `/api/user/bookings`        | Get user's booking history | ✅   |
-| GET    | `/api/user/favorites`       | Get user's favorite movies | ✅   |
-| POST   | `/api/user/update-favorite` | Add/remove favorite movie  | ✅   |
-
-### Show Routes
-
-| Method | Endpoint                  | Description           | Auth     |
-| ------ | ------------------------- | --------------------- | -------- |
-| GET    | `/api/show/trending`      | Get trending movies   | ❌       |
-| GET    | `/api/show/home-trailers` | Get featured trailers | ❌       |
-| GET    | `/api/show/all`           | Get all active shows  | ❌       |
-| GET    | `/api/show/:movieId`      | Get shows for a movie | ❌       |
-| POST   | `/api/show/add`           | Create new show       | 🔐 Admin |
-| GET    | `/api/show/now-playing`   | Fetch from TMDB       | 🔐 Admin |
-
-### Booking Routes
-
-| Method | Endpoint                     | Description            | Auth |
-| ------ | ---------------------------- | ---------------------- | ---- |
-| POST   | `/api/booking/create`        | Create new booking     | ✅   |
-| GET    | `/api/booking/seats/:showId` | Get occupied seats     | ✅   |
-| POST   | `/api/booking/webhook`       | Stripe webhook handler | ❌   |
-
-### Admin Routes
-
-| Method | Endpoint                  | Description         | Auth     |
-| ------ | ------------------------- | ------------------- | -------- |
-| GET    | `/api/admin/is-admin`     | Check admin status  | ✅       |
-| GET    | `/api/admin/dashboard`    | Get dashboard stats | 🔐 Admin |
-| GET    | `/api/admin/all-shows`    | Get all shows       | 🔐 Admin |
-| GET    | `/api/admin/all-bookings` | Get all bookings    | 🔐 Admin |
-
----
-
-## 🌐 Deployment
-
-### Frontend Deployment (Vercel)
-
-1. Push your code to GitHub
-2. Import project in Vercel
-3. Configure build settings:
-   - **Framework Preset:** Vite
-   - **Root Directory:** `client`
-   - **Build Command:** `pnpm build`
-   - **Output Directory:** `dist`
-4. Add environment variables
-5. Deploy
-
-**Production URL:** [https://book-my-show-green-seven.vercel.app/](https://book-my-show-green-seven.vercel.app/)
-
-### Backend Deployment (Vercel)
-
-1. Import backend project in Vercel
-2. Configure build settings:
-   - **Root Directory:** `server`
-   - **Build Command:** `pnpm build`
-   - **Output Directory:** `dist`
-3. Add environment variables
-4. Enable webhooks with public URL
-5. Deploy
-
-**Production URL:** [https://bookmyshow-server-fawn.vercel.app/](https://bookmyshow-server-fawn.vercel.app/)
-
-### Post-Deployment Configuration
-
-1. **Update Stripe Webhook URL:**
-
-   ```
-   https://bookmyshow-server-fawn.vercel.app/api/booking/webhook
-   ```
-
-2. **Update Clerk Redirect URLs:**
-
-   - Add production frontend URL to allowed origins
-
-3. **Update CORS Settings:**
-
-   - Whitelist production frontend URL
-
-4. **Test Payment Flow:**
-   - Use Stripe test cards
-   - Verify webhook delivery
-
----
-
-## 📸 Screenshots
-
-### 🏠 Homepage
-
-![Homepage](client/public/screenshots/homepage.png)
-_Browse trending movies and featured trailers_
-
-### 🎬 Movies List
-
-![Movies List](client/public/screenshots/movies-list.png)
-_Explore all available movies_
-
-### 🎞️ Movie Details
-
-![Movie Details](client/public/screenshots/movie-details.png)
-_View detailed information, cast, and available shows_
-
-### 🎟️ Seat Selection
-
-![Seat Selection](client/public/screenshots/seat-selection.png)
-_Interactive seat layout with real-time availability_
-
-### 💳 Stripe Checkout
-
-![Stripe Checkout](client/public/screenshots/stripe-checkout.png)
-_Secure payment processing_
-
-### 📋 My Bookings
-
-![My Bookings](client/public/screenshots/my-bookings.png)
-_View booking history and pending payments_
-
-### 📊 Admin Dashboard
-
-![Admin Dashboard](client/public/screenshots/admin-dashboard.png)
-_Comprehensive analytics and metrics_
-
-### ➕ Add Shows
-
-![Add Shows](client/public/screenshots/admin-add-shows.png)
-_Create and manage show schedules_
-
-### 📚 All Bookings
-
-![All Bookings](client/public/screenshots/admin-all-bookings.png)
-_Monitor all platform bookings_
-
----
-
-## 🔄 Workflows
-
-### 1. Real-Time Seat Locking
-
-**Problem:** Prevent multiple users from booking the same seats simultaneously.
-
-**Solution:**
-
-- Seats are locked immediately when a booking is created
-- Locked seats are stored in `show.occupiedSeats` array
-- Transaction-safe MongoDB operations prevent race conditions
-- Seats remain locked until payment or expiry
-
-```javascript
-// Pseudo-code
-const booking = await Booking.create({
-  seats: selectedSeats,
-  status: "unpaid",
-});
-
-await Show.updateOne({ _id: showId }, { $push: { occupiedSeats: { $each: selectedSeats } } });
-```
-
-### 2. Stripe Payment Flow
-
-**Process:**
-
-1. User completes seat selection
-2. Backend creates Stripe checkout session
-3. User redirects to Stripe
-4. User completes payment
-5. Stripe sends webhook to backend
-6. Backend updates booking status to 'paid'
-7. Inngest triggers email confirmation
-
-```javascript
-// Webhook handler
-stripe.webhooks.constructEvent(payload, signature, secret);
-if (event.type === "checkout.session.completed") {
-  await Booking.updateOne({ paymentLink: session.url }, { isPaid: true, paymentLink: null });
-  await inngest.send({
-    name: "booking/confirmed",
-    data: { bookingId, userEmail },
-  });
+```json
+// server/vercel.json
+{
+  "version": 2,
+  "builds": [{ "src": "src/server.ts", "use": "@vercel/node" }],
+  "routes": [{ "src": "/(.*)", "dest": "src/server.ts" }]
 }
 ```
 
-### 3. Automated Seat Release (Inngest)
+**Steps:**
 
-**Problem:** Unpaid bookings block seats indefinitely.
+1. Connect GitHub repo to Vercel
+2. Configure environment variables in Vercel dashboard
+3. Deploy both `client` and `server` as separate projects
+4. Update `VITE_BASE_URL` to point to backend URL
+5. Update `CLIENT_URL` in backend to frontend URL
 
-**Solution:**
+### MongoDB Atlas Setup
 
-- Inngest schedules a delayed job 10 minutes after booking creation
-- Job checks if booking is still unpaid
-- If unpaid: releases seats and deletes booking
-- If paid: job completes without action
+1. Create cluster on MongoDB Atlas
+2. Add IP whitelist: `0.0.0.0/0` (allow all for serverless)
+3. Create database user with read/write permissions
+4. Copy connection string to `MONGODB_URI`
 
-```javascript
-// Inngest function
-export const releaseUnpaidSeats = inngest.createFunction(
-  { id: "release-unpaid-seats" },
-  { event: "booking/created" },
-  async ({ event, step }) => {
-    await step.sleep("wait-10-minutes", "10m");
+### Stripe Webhooks
 
-    await step.run("check-and-release", async () => {
-      const booking = await Booking.findById(event.data.bookingId);
-      if (!booking.isPaid) {
-        await Show.updateOne(
-          { _id: booking.showId },
-          { $pull: { occupiedSeats: { $in: booking.seats } } }
-        );
-        await booking.deleteOne();
-      }
-    });
-  }
-);
-```
+1. Go to Stripe Dashboard → Developers → Webhooks
+2. Add endpoint: `https://your-backend-url.vercel.app/api/stripe`
+3. Select event: `checkout.session.completed`
+4. Copy webhook secret to `STRIPE_WEBHOOK_SECRET`
 
-### 4. Email Notifications
+### Inngest Setup
 
-**Trigger:** Stripe payment confirmation
-
-**Content:**
-
-- Booking confirmation number
-- Movie title and poster
-- Show date and time
-- Seat numbers
-- Total amount paid
-
-**Implementation:** Nodemailer with Brevo SMTP
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow existing code style and conventions
-- Write meaningful commit messages
-- Add comments for complex logic
-- Test thoroughly before submitting PR
-- Update documentation as needed
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+1. Create account at inngest.com
+2. Connect Inngest to your backend URL
+3. Copy signing key to `INNGEST_SIGNING_KEY`
+4. Deploy functions: `POST https://your-backend-url.vercel.app/api/inngest`
 
 ---
 
@@ -646,16 +847,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [BookMyShow](https://bookmyshow.com) for inspiration
-- [TMDB](https://www.themoviedb.org/) for movie data API
-- [Clerk](https://clerk.dev/) for authentication
+- [TMDB](https://www.themoviedb.org/) for movie data and images
+- [Clerk](https://clerk.dev/) for authentication infrastructure
 - [Stripe](https://stripe.com/) for payment processing
-- [Inngest](https://www.inngest.com/) for workflow automation
+- [Inngest](https://www.inngest.com/) for background job orchestration
+- [BookMyShow](https://in.bookmyshow.com/) for design inspiration
 
 ---
 
-## ⭐ Show Your Support
+<div align="center">
 
-If you found this project helpful, please consider giving it a star on GitHub! It helps others discover the project and motivates continued development.
+**⭐ Star this repository if you found it helpful!**
 
-<p align="center">Made with ❤️ by Vikraman R</p>
+Made with ❤️ and ☕
+
+</div>
