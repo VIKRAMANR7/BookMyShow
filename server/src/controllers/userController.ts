@@ -1,7 +1,8 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response } from "express";
 import { clerkClient, type User } from "@clerk/express";
 import Booking from "../models/Booking.js";
 import Movie from "../models/Movie.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 
 /** Extract favorites from Clerk metadata */
 interface UserPrivateMetadata {
@@ -13,77 +14,57 @@ function getFavoriteIds(user: User): string[] {
   return meta?.favorites ?? [];
 }
 
-export async function getUserBookings(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const { userId } = req.auth();
-    if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
-      return;
-    }
-
-    const bookings = await Booking.find({ user: userId })
-      .populate({
-        path: "show",
-        populate: { path: "movie" },
-      })
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({ success: true, bookings });
-  } catch (err) {
-    next(err);
+export const getUserBookings = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = req.auth();
+  if (!userId) {
+    res.status(401).json({ success: false, message: "Unauthorized" });
+    return;
   }
-}
 
-export async function updateFavorite(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const { userId } = req.auth();
-    const movieId = req.body.movieId as string | undefined;
+  const bookings = await Booking.find({ user: userId })
+    .populate({
+      path: "show",
+      populate: { path: "movie" },
+    })
+    .sort({ createdAt: -1 });
 
-    if (!userId || !movieId) {
-      res.status(400).json({ success: false, message: "Invalid request" });
-      return;
-    }
+  res.status(200).json({ success: true, bookings });
+});
 
-    const user = await clerkClient.users.getUser(userId);
-    const favorites = getFavoriteIds(user);
+export const updateFavorite = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = req.auth();
+  const movieId = req.body.movieId as string | undefined;
 
-    const updated = favorites.includes(movieId)
-      ? favorites.filter((id) => id !== movieId)
-      : [...favorites, movieId];
-
-    await clerkClient.users.updateUserMetadata(userId, {
-      privateMetadata: { favorites: updated },
-    });
-
-    res.status(200).json({ success: true, message: "Favorites updated" });
-  } catch (err) {
-    next(err);
+  if (!userId || !movieId) {
+    res.status(400).json({ success: false, message: "Invalid request" });
+    return;
   }
-}
 
-export async function getFavorites(req: Request, res: Response, next: NextFunction): Promise<void> {
-  try {
-    const { userId } = req.auth();
-    if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
-      return;
-    }
+  const user = await clerkClient.users.getUser(userId);
+  const favorites = getFavoriteIds(user);
 
-    const user = await clerkClient.users.getUser(userId);
-    const favoriteIds = getFavoriteIds(user);
+  const updated = favorites.includes(movieId)
+    ? favorites.filter((id) => id !== movieId)
+    : [...favorites, movieId];
 
-    const movies = await Movie.find({ _id: { $in: favoriteIds } });
+  await clerkClient.users.updateUserMetadata(userId, {
+    privateMetadata: { favorites: updated },
+  });
 
-    res.status(200).json({ success: true, movies });
-  } catch (err) {
-    next(err);
+  res.status(200).json({ success: true, message: "Favorites updated" });
+});
+
+export const getFavorites = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = req.auth();
+  if (!userId) {
+    res.status(401).json({ success: false, message: "Unauthorized" });
+    return;
   }
-}
+
+  const user = await clerkClient.users.getUser(userId);
+  const favoriteIds = getFavoriteIds(user);
+
+  const movies = await Movie.find({ _id: { $in: favoriteIds } });
+
+  res.status(200).json({ success: true, movies });
+});

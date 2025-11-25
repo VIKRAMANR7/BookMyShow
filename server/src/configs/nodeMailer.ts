@@ -6,34 +6,25 @@ interface EmailOptions {
   body: string;
 }
 
-function validateEmailEnv(): boolean {
-  return Boolean(process.env.SMTP_USER && process.env.SMTP_PASS && process.env.SENDER_EMAIL);
-}
-
 const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
   port: 587,
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env.SMTP_USER!,
+    pass: process.env.SMTP_PASS!,
   },
 });
 
-export async function sendEmail(options: EmailOptions): Promise<void> {
-  if (!validateEmailEnv()) {
-    console.error("Missing email environment variables");
-    return;
-  }
-
+export async function sendEmail({ to, subject, body }: EmailOptions): Promise<void> {
   try {
     await transporter.sendMail({
-      from: process.env.SENDER_EMAIL,
-      to: options.to,
-      subject: options.subject,
-      html: options.body,
+      from: process.env.SENDER_EMAIL!,
+      to,
+      subject,
+      html: body,
     });
 
-    console.log(`Email sent to ${options.to}`);
+    console.log(`Email sent to ${to}`);
   } catch {
     console.error("Failed to send email");
   }

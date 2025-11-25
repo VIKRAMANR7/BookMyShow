@@ -1,12 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
 import { clerkClient, getAuth } from "@clerk/express";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 
-export const protectAdmin = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
+export const protectAdmin = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
     const { userId } = getAuth(req);
 
     if (!userId) {
@@ -23,7 +20,5 @@ export const protectAdmin = async (
     }
 
     next();
-  } catch {
-    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
-};
+);

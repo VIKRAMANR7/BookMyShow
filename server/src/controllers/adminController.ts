@@ -1,7 +1,8 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response } from "express";
 import { clerkClient, type User } from "@clerk/express";
 import Booking from "../models/Booking.js";
 import Show from "../models/Show.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 
 // Extract simple user name from Clerk user object
 function getUserName(user: User): string {
@@ -9,107 +10,87 @@ function getUserName(user: User): string {
 }
 
 /* GET /api/admin/is-admin
-  Admin is already validated in middleware */
-export async function isAdmin(_req: Request, res: Response): Promise<void> {
+   Admin is already validated in middleware */
+export const isAdmin = asyncHandler(async (_req: Request, res: Response) => {
   res.status(200).json({ success: true, isAdmin: true });
-}
+});
 
-export async function getDashboardData(
-  _req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const paidBookings = await Booking.find({ isPaid: true });
+export const getDashboardData = asyncHandler(async (_req: Request, res: Response) => {
+  const paidBookings = await Booking.find({ isPaid: true });
 
-    const activeShows = await Show.find({
-      showDateTime: { $gte: new Date() },
-    }).populate("movie");
+  const activeShows = await Show.find({
+    showDateTime: { $gte: new Date() },
+  }).populate("movie");
 
-    const users = await clerkClient.users.getUserList();
-    const totalUsers = users.totalCount ?? users.data.length;
+  const users = await clerkClient.users.getUserList();
+  const totalUsers = users.totalCount ?? users.data.length;
 
-    const totalRevenue = paidBookings.reduce((sum, b) => sum + b.amount, 0);
+  const totalRevenue = paidBookings.reduce((sum, b) => sum + b.amount, 0);
 
-    res.status(200).json({
-      success: true,
-      dashboardData: {
-        totalBookings: paidBookings.length,
-        totalRevenue,
-        activeShows,
-        totalUsers,
-      },
-    });
-  } catch (err) {
-    next(err);
-  }
-}
+  res.status(200).json({
+    success: true,
+    dashboardData: {
+      totalBookings: paidBookings.length,
+      totalRevenue,
+      activeShows,
+      totalUsers,
+    },
+  });
+});
 
-export async function getAllShows(_req: Request, res: Response, next: NextFunction): Promise<void> {
-  try {
-    const shows = await Show.find({
-      showDateTime: { $gte: new Date() },
+export const getAllShows = asyncHandler(async (_req: Request, res: Response) => {
+  const shows = await Show.find({
+    showDateTime: { $gte: new Date() },
+  })
+    .populate("movie")
+    .sort({ showDateTime: 1 });
+
+  const paidBookings = await Booking.find({ isPaid: true });
+
+  const formatted = shows.map((show) => {
+    const showId = String(show._id);
+
+    const booked = paidBookings
+      .filter((b) => String(b.show) === showId)
+      .flatMap((b) => b.bookedSeats);
+
+    return {
+      _id: show._id,
+      movie: show.movie,
+      showDateTime: show.showDateTime,
+      showPrice: show.showPrice,
+      occupiedSeats: booked,
+    };
+  });
+
+  res.status(200).json({ success: true, shows: formatted });
+});
+
+export const getAllBookings = asyncHandler(async (_req: Request, res: Response) => {
+  const bookings = await Booking.find()
+    .populate({
+      path: "show",
+      populate: { path: "movie" },
     })
-      .populate("movie")
-      .sort({ showDateTime: 1 });
+    .sort({ createdAt: -1 });
 
-    const paidBookings = await Booking.find({ isPaid: true });
+  const enriched = await Promise.all(
+    bookings.map(async (booking) => {
+      let userName = "Unknown User";
 
-    const formatted = shows.map((show) => {
-      const showId = String(show._id);
-
-      const booked = paidBookings
-        .filter((b) => String(b.show) === showId)
-        .flatMap((b) => b.bookedSeats);
+      try {
+        const user = await clerkClient.users.getUser(booking.user);
+        userName = getUserName(user);
+      } catch {
+        console.log("User not found:", booking.user);
+      }
 
       return {
-        _id: show._id,
-        movie: show.movie,
-        showDateTime: show.showDateTime,
-        showPrice: show.showPrice,
-        occupiedSeats: booked,
+        ...booking.toObject(),
+        user: { name: userName },
       };
-    });
+    })
+  );
 
-    res.status(200).json({ success: true, shows: formatted });
-  } catch (err) {
-    next(err);
-  }
-}
-
-export async function getAllBookings(
-  _req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const bookings = await Booking.find()
-      .populate({
-        path: "show",
-        populate: { path: "movie" },
-      })
-      .sort({ createdAt: -1 });
-
-    const enriched = await Promise.all(
-      bookings.map(async (booking) => {
-        let userName = "Unknown User";
-
-        try {
-          const user = await clerkClient.users.getUser(booking.user);
-          userName = getUserName(user);
-        } catch {
-          console.log("User not found:", booking.user);
-        }
-
-        return {
-          ...booking.toObject(),
-          user: { name: userName },
-        };
-      })
-    );
-
-    res.status(200).json({ success: true, bookings: enriched });
-  } catch (err) {
-    next(err);
-  }
-}
+  res.status(200).json({ success: true, bookings: enriched });
+});

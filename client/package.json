@@ -7,9 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint \"src\"",
+    "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css,json,md}\""
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.32.0",

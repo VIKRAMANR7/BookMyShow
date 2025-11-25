@@ -1,12 +1,7 @@
 import mongoose from "mongoose";
 
-const MONGO_URI = process.env.MONGODB_URI;
-
 export async function connectDB(): Promise<void> {
-  if (!MONGO_URI) {
-    console.error("MONGODB_URI is missing in environment variables");
-    process.exit(1);
-  }
+  const MONGO_URI = process.env.MONGODB_URI!;
 
   try {
     await mongoose.connect(`${MONGO_URI}/bookmyshow`);

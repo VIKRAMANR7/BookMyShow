@@ -8,5 +8,8 @@ export function errorHandler(
 ): void {
   const message = err instanceof Error ? err.message : "Internal Server Error";
 
-  res.status(500).json({ success: false, message });
+  res.status(500).json({
+    success: false,
+    message,
+  });
 }
