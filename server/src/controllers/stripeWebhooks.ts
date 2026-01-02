@@ -4,31 +4,23 @@ import Stripe from "stripe";
 import Booking from "../models/Booking.js";
 import { inngest } from "../inngest/index.js";
 
-const secretKey = process.env.STRIPE_SECRET_KEY;
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-if (!secretKey || !webhookSecret) {
-  throw new Error("Missing Stripe environment variables");
-}
-
-const stripe = new Stripe(secretKey);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function stripeWebhooks(req: Request, res: Response, next: NextFunction) {
   const signature = req.headers["stripe-signature"];
 
   if (typeof signature !== "string") {
-    res.status(400).send("Missing Stripe signature header");
-    return;
+    return res.status(400).send("Missing Stripe signature header");
   }
 
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret!);
+    event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid webhook signature";
-    res.status(400).send(`Webhook Error: ${message}`);
-    return;
+    return res.status(400).send(`Webhook Error: ${message}`);
   }
 
   try {
@@ -37,8 +29,7 @@ export async function stripeWebhooks(req: Request, res: Response, next: NextFunc
       const bookingId = session.metadata?.bookingId;
 
       if (!bookingId) {
-        res.status(400).send("Missing bookingId in metadata");
-        return;
+        return res.status(400).send("Missing bookingId in metadata");
       }
 
       await Booking.findByIdAndUpdate(bookingId, {
@@ -52,7 +43,7 @@ export async function stripeWebhooks(req: Request, res: Response, next: NextFunc
       });
     }
 
-    res.status(200).json({ received: true });
+    return res.status(200).json({ received: true });
   } catch (err) {
     next(err);
   }

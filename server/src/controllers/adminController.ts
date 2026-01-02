@@ -4,15 +4,12 @@ import Booking from "../models/Booking.js";
 import Show from "../models/Show.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 
-// Extract simple user name from Clerk user object
 function getUserName(user: User): string {
   return user.fullName || user.username || user.firstName || user.lastName || "Unknown User";
 }
 
-/* GET /api/admin/is-admin
-   Admin is already validated in middleware */
 export const isAdmin = asyncHandler(async (_req: Request, res: Response) => {
-  res.status(200).json({ success: true, isAdmin: true });
+  return res.status(200).json({ success: true, isAdmin: true });
 });
 
 export const getDashboardData = asyncHandler(async (_req: Request, res: Response) => {
@@ -27,7 +24,7 @@ export const getDashboardData = asyncHandler(async (_req: Request, res: Response
 
   const totalRevenue = paidBookings.reduce((sum, b) => sum + b.amount, 0);
 
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     dashboardData: {
       totalBookings: paidBookings.length,
@@ -63,7 +60,7 @@ export const getAllShows = asyncHandler(async (_req: Request, res: Response) => 
     };
   });
 
-  res.status(200).json({ success: true, shows: formatted });
+  return res.status(200).json({ success: true, shows: formatted });
 });
 
 export const getAllBookings = asyncHandler(async (_req: Request, res: Response) => {
@@ -82,7 +79,7 @@ export const getAllBookings = asyncHandler(async (_req: Request, res: Response) 
         const user = await clerkClient.users.getUser(booking.user);
         userName = getUserName(user);
       } catch {
-        console.log("User not found:", booking.user);
+        /* User not found in Clerk */
       }
 
       return {
@@ -92,5 +89,5 @@ export const getAllBookings = asyncHandler(async (_req: Request, res: Response) 
     })
   );
 
-  res.status(200).json({ success: true, bookings: enriched });
+  return res.status(200).json({ success: true, bookings: enriched });
 });

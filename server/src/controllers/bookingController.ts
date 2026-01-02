@@ -6,63 +6,36 @@ import Show from "../models/Show.js";
 import { inngest } from "../inngest/index.js";
 import { getUserId } from "../utils/auth.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
-
-interface PopulatedMovie {
-  title: string;
-}
-
-function isPopulatedMovie(movie: unknown): movie is PopulatedMovie {
-  return (
-    typeof movie === "object" &&
-    movie !== null &&
-    "title" in movie &&
-    typeof (movie as { title: unknown }).title === "string"
-  );
-}
+import type { IMovie } from "../models/Movie.js";
 
 async function checkSeatsAvailability(showId: string, selectedSeats: string[]) {
-  try {
-    const show = await Show.findById(showId);
-    if (!show) return false;
+  const show = await Show.findById(showId);
+  if (!show) return false;
 
-    const occupied = show.occupiedSeats ?? {};
-    return !selectedSeats.some((seat) => Boolean(occupied[seat]));
-  } catch {
-    return false;
-  }
+  const occupied = show.occupiedSeats ?? {};
+  return !selectedSeats.some((seat) => Boolean(occupied[seat]));
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export const createBooking = asyncHandler(async (req: Request, res: Response) => {
   const userId = getUserId(req);
-  const { showId, selectedSeats } = req.body as {
-    showId: string;
-    selectedSeats: string[];
-  };
+  const { showId, selectedSeats } = req.body;
 
   const origin = req.headers.origin ?? "";
 
-  if (!userId || !showId || !Array.isArray(selectedSeats)) {
-    res.status(400).json({ success: false, message: "Invalid booking request" });
-    return;
+  if (!userId || typeof showId !== "string" || !Array.isArray(selectedSeats)) {
+    return res.status(400).json({ success: false, message: "Invalid booking request" });
   }
 
   const available = await checkSeatsAvailability(showId, selectedSeats);
   if (!available) {
-    res.status(400).json({ success: false, message: "Selected seats are already taken" });
-    return;
+    return res.status(400).json({ success: false, message: "Selected seats are already taken" });
   }
 
-  const showData = await Show.findById(showId).populate("movie");
+  const showData = await Show.findById(showId).populate<{ movie: IMovie }>("movie");
   if (!showData || !showData.movie) {
-    res.status(404).json({ success: false, message: "Show not found" });
-    return;
-  }
-
-  if (!isPopulatedMovie(showData.movie)) {
-    res.status(500).json({ success: false, message: "Movie details not loaded correctly" });
-    return;
+    return res.status(404).json({ success: false, message: "Show not found" });
   }
 
   const movie = showData.movie;
@@ -106,7 +79,7 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
     data: { bookingId: booking._id.toString() },
   });
 
-  res.status(200).json({ success: true, url: session.url });
+  return res.status(200).json({ success: true, url: session.url });
 });
 
 export const getOccupiedSeats = asyncHandler(async (req: Request, res: Response) => {
@@ -114,10 +87,9 @@ export const getOccupiedSeats = asyncHandler(async (req: Request, res: Response)
 
   const show = await Show.findById(showId);
   if (!show) {
-    res.status(404).json({ success: false, message: "Show not found" });
-    return;
+    return res.status(404).json({ success: false, message: "Show not found" });
   }
 
   const occupiedSeats = Object.keys(show.occupiedSeats ?? {});
-  res.status(200).json({ success: true, occupiedSeats });
+  return res.status(200).json({ success: true, occupiedSeats });
 });

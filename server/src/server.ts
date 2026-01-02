@@ -1,7 +1,6 @@
-import express, { Request, Response } from "express";
 import cors from "cors";
 import "dotenv/config";
-
+import express from "express";
 import { clerkMiddleware } from "@clerk/express";
 import { serve } from "inngest/express";
 
@@ -34,7 +33,7 @@ app.use("/api/stripe", express.raw({ type: "application/json" }), stripeWebhooks
 app.use(express.json());
 app.use(clerkMiddleware());
 
-app.get("/", (_req: Request, res: Response) => {
+app.get("/", (_req, res) => {
   res.send("Server is Live");
 });
 
@@ -47,7 +46,7 @@ app.use("/api/user", userRouter);
 
 app.use(errorHandler);
 
-const PORT = Number(process.env.PORT) || 5000;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

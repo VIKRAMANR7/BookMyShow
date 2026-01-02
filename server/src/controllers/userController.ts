@@ -17,8 +17,7 @@ export const getUserBookings = asyncHandler(async (req: Request, res: Response) 
   const { userId } = req.auth();
 
   if (!userId) {
-    res.status(401).json({ success: false, message: "Unauthorized" });
-    return;
+    return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 
   const bookings = await Booking.find({ user: userId })
@@ -28,7 +27,7 @@ export const getUserBookings = asyncHandler(async (req: Request, res: Response) 
     })
     .sort({ createdAt: -1 });
 
-  res.status(200).json({ success: true, bookings });
+  return res.status(200).json({ success: true, bookings });
 });
 
 export const updateFavorite = asyncHandler(async (req: Request, res: Response) => {
@@ -36,8 +35,7 @@ export const updateFavorite = asyncHandler(async (req: Request, res: Response) =
   const { movieId } = req.body;
 
   if (!userId || !movieId) {
-    res.status(400).json({ success: false, message: "Invalid request" });
-    return;
+    return res.status(400).json({ success: false, message: "Invalid request" });
   }
 
   const user = await clerkClient.users.getUser(userId);
@@ -51,15 +49,14 @@ export const updateFavorite = asyncHandler(async (req: Request, res: Response) =
     privateMetadata: { favorites: updated },
   });
 
-  res.status(200).json({ success: true, message: "Favorites updated" });
+  return res.status(200).json({ success: true, message: "Favorites updated" });
 });
 
 export const getFavorites = asyncHandler(async (req: Request, res: Response) => {
   const { userId } = req.auth();
 
   if (!userId) {
-    res.status(401).json({ success: false, message: "Unauthorized" });
-    return;
+    return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 
   const user = await clerkClient.users.getUser(userId);
@@ -67,5 +64,5 @@ export const getFavorites = asyncHandler(async (req: Request, res: Response) => 
 
   const movies = await Movie.find({ _id: { $in: favoriteIds } });
 
-  res.status(200).json({ success: true, movies });
+  return res.status(200).json({ success: true, movies });
 });

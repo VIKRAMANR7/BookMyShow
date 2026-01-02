@@ -8,9 +8,14 @@ import { cacheFetch, CacheKeys, delCache } from "../utils/cache.js";
 import type { TMDBListResponse, TMDBMovie, TMDBVideo } from "../types/tmdb.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 
+interface ShowTimeSlot {
+  time: Date;
+  showId: string;
+}
+
 const tmdb = axios.create({
   baseURL: "https://api.themoviedb.org/3",
-  headers: { Authorization: `Bearer ${process.env.TMDB_ACCESS_TOKEN}` },
+  headers: { Authorization: `Bearer ${process.env.TMDB_ACCESS_TOKEN!}` },
 });
 
 export const getTrendingMovies = asyncHandler(async (_req: Request, res: Response) => {
@@ -19,7 +24,7 @@ export const getTrendingMovies = asyncHandler(async (_req: Request, res: Respons
     return data.data.results.slice(0, 8);
   });
 
-  res.json({ success: true, movies });
+  return res.json({ success: true, movies });
 });
 
 export const getHomePageTrailers = asyncHandler(async (_req: Request, res: Response) => {
@@ -53,24 +58,24 @@ export const getHomePageTrailers = asyncHandler(async (_req: Request, res: Respo
     return results.filter(Boolean);
   });
 
-  res.json({ success: true, trailers });
+  return res.json({ success: true, trailers });
 });
 
 export const getNowPlayingMovies = asyncHandler(async (_req: Request, res: Response) => {
   const data = await tmdb.get<TMDBListResponse<TMDBMovie>>("/movie/now_playing?region=US");
 
-  res.json({
+  return res.json({
     success: true,
     movies: data.data.results.slice(0, 20),
   });
 });
 
 export const addShow = asyncHandler(async (req: Request, res: Response) => {
-  const { movieId, showsInput, showPrice } = req.body as {
-    movieId: string;
-    showsInput: Array<{ date: string; time: string[] }>;
-    showPrice: number;
-  };
+  const { movieId, showsInput, showPrice } = req.body;
+
+  if (typeof movieId !== "string" || !Array.isArray(showsInput) || typeof showPrice !== "number") {
+    return res.status(400).json({ success: false, message: "Invalid request" });
+  }
 
   let movie = await Movie.findById(movieId);
 
@@ -91,7 +96,7 @@ export const addShow = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  const docs = showsInput.flatMap((s) =>
+  const docs = showsInput.flatMap((s: { date: string; time: string[] }) =>
     s.time.map((t) => ({
       movie: movieId,
       showDateTime: new Date(`${s.date}T${t}:00.000Z`),
@@ -106,7 +111,7 @@ export const addShow = asyncHandler(async (req: Request, res: Response) => {
 
   delCache(CacheKeys.homeTrailers);
 
-  res.json({ success: true, message: "Show added successfully" });
+  return res.json({ success: true, message: "Show added successfully" });
 });
 
 export const getShows = asyncHandler(async (_req: Request, res: Response) => {
@@ -118,13 +123,8 @@ export const getShows = asyncHandler(async (_req: Request, res: Response) => {
 
   const movies = Array.from(new Set(shows.map((s) => s.movie)));
 
-  res.json({ success: true, shows: movies });
+  return res.json({ success: true, shows: movies });
 });
-
-interface ShowTimeSlot {
-  time: Date;
-  showId: string;
-}
 
 export const getShow = asyncHandler(async (req: Request, res: Response) => {
   const { movieId } = req.params;
@@ -136,7 +136,7 @@ export const getShow = asyncHandler(async (req: Request, res: Response) => {
 
   const movie = await Movie.findById(movieId);
 
-  const grouped: { [date: string]: ShowTimeSlot[] } = {};
+  const grouped: Record<string, ShowTimeSlot[]> = {};
 
   for (const s of shows) {
     const iso = s.showDateTime.toISOString();
@@ -150,5 +150,5 @@ export const getShow = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  res.json({ success: true, movie, dateTime: grouped });
+  return res.json({ success: true, movie, dateTime: grouped });
 });
