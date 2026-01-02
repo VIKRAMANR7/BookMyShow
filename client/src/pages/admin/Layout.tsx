@@ -9,18 +9,14 @@ import { useAppContext } from "../../context/AppContext";
 export default function Layout() {
   const { isAdmin, fetchIsAdmin } = useAppContext();
 
-  // Fetch admin status ONCE on mount
   useEffect(() => {
     fetchIsAdmin();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchIsAdmin]);
 
-  // Still loading admin status
   if (isAdmin === false) {
     return <Loading />;
   }
 
-  // If user is NOT admin → Redirect
   if (!isAdmin) {
     return <Navigate to="/" replace />;
   }

@@ -1,4 +1,4 @@
-export function kConverter(num: number): string {
+export function kConverter(num: number) {
   if (num >= 1000) {
     return `${(num / 1000).toFixed(1)}k`;
   }

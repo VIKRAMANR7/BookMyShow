@@ -5,7 +5,7 @@ import {
   StarIcon,
   UsersIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 
 import Title from "../../components/admin/Title";
@@ -17,9 +17,9 @@ import api from "../../lib/api";
 
 import type { DashboardData } from "../../types/dashboard";
 
-export default function Dashboard() {
-  const currency = import.meta.env.VITE_CURRENCY ?? "₹";
+const currency = import.meta.env.VITE_CURRENCY ?? "$";
 
+export default function Dashboard() {
   const { getToken, user, imageBaseUrl } = useAppContext();
 
   const [dashboardData, setDashboardData] = useState<DashboardData>({
@@ -31,8 +31,7 @@ export default function Dashboard() {
 
   const [loading, setLoading] = useState(true);
 
-  /* Fetch dashboard statistics (bookings, revenue, users, upcoming shows)*/
-  async function fetchDashboardData(): Promise<void> {
+  const fetchDashboardData = useCallback(async () => {
     try {
       const token = await getToken();
 
@@ -48,25 +47,21 @@ export default function Dashboard() {
       } else {
         toast.error("Failed to load dashboard");
       }
-    } catch (err) {
-      console.error("fetchDashboardData error:", err);
+    } catch {
       toast.error("Error fetching dashboard");
     } finally {
       setLoading(false);
     }
-  }
+  }, [getToken]);
 
-  // Fetch data when admin user becomes available
   useEffect(() => {
     if (user) {
       fetchDashboardData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, fetchDashboardData]);
 
   if (loading) return <Loading />;
 
-  /* Dashboard stats cards */
   const dashboardCards = [
     {
       title: "Total Bookings",
@@ -94,7 +89,6 @@ export default function Dashboard() {
     <>
       <Title text1="Admin" text2="Dashboard" />
 
-      {/* Dashboard Summary Cards */}
       <div className="relative flex flex-wrap gap-4 mt-6">
         <BlurCircle top="-100px" left="0px" />
 
@@ -115,7 +109,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Active Shows Section */}
       <p className="mt-10 text-lg font-medium">Active Shows</p>
 
       <div className="relative flex flex-wrap gap-6 mt-4 max-w-5xl">
@@ -139,7 +132,6 @@ export default function Dashboard() {
                 {currency} {show.showPrice}
               </p>
 
-              {/* Rating */}
               <p className="flex items-center gap-1 text-sm text-gray-400 mt-1 pr-1">
                 <StarIcon className="size-4 text-primary fill-primary" />
                 {show.movie.vote_average.toFixed(1)}

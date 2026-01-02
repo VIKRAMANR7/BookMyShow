@@ -6,17 +6,14 @@ import BlurCircle from "./BlurCircle";
 import MovieCard from "./MovieCard";
 import type { MovieItem } from "../types/movie";
 
-/* Displays top 4 movies from the global shows list. */
 export default function FeaturedSection() {
   const navigate = useNavigate();
   const { movies } = useAppContext();
 
-  // Take first 4 movies safely
   const featuredMovies: MovieItem[] = Array.isArray(movies) ? movies.slice(0, 4) : [];
 
   return (
     <div className="px-6 md:px-16 lg:px-24 xl:px-44 overflow-hidden">
-      {/* Header */}
       <div className="relative flex items-center justify-between pt-20 pb-10">
         <BlurCircle top="0" right="-80px" />
 
@@ -30,14 +27,12 @@ export default function FeaturedSection() {
         </button>
       </div>
 
-      {/* Movies Grid */}
       <div className="flex flex-wrap max-sm:justify-center gap-8 mt-8">
         {featuredMovies.map((movie) => (
           <MovieCard key={movie._id} movie={movie} />
         ))}
       </div>
 
-      {/* CTA */}
       <div className="flex justify-center mt-20">
         <button
           onClick={() => {

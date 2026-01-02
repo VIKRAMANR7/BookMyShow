@@ -18,7 +18,6 @@ interface TrailerResponse {
   trailers: TrailerItem[];
 }
 
-/* Displays the main trailer player*/
 export default function TrailersSection() {
   const { getToken } = useAppContext();
 
@@ -36,8 +35,9 @@ export default function TrailersSection() {
         setTrailers(data.trailers);
         setCurrentTrailer(data.trailers[0] ?? null);
       }
-    } catch (err) {
-      console.error("Trailer load error:", err);
+    } catch {
+      setTrailers([]);
+      setCurrentTrailer(null);
     }
   }, [getToken]);
 
@@ -51,7 +51,6 @@ export default function TrailersSection() {
     <section className="px-6 md:px-16 lg:px-24 xl:px-44 py-20 overflow-hidden">
       <h2 className="text-gray-300 font-medium text-lg">Trailers</h2>
 
-      {/* Main Trailer Player */}
       <div className="relative mt-6">
         <BlurCircle top="-100px" right="-100px" />
 
@@ -64,7 +63,6 @@ export default function TrailersSection() {
         />
       </div>
 
-      {/* Trailer Thumbnails */}
       <div className="overflow-x-auto no-scrollbar mt-8 mx-auto max-w-[960px]">
         <div className="flex gap-4 w-max">
           {trailers.map((t) => (

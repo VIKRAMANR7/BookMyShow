@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -41,7 +41,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
   const imageBaseUrl = import.meta.env.VITE_TMDB_IMAGE_BASE_URL;
 
-  async function fetchIsAdmin(): Promise<void> {
+  const fetchIsAdmin = useCallback(async () => {
     try {
       const token = await getToken();
       const { data } = await api.get("/api/admin/is-admin", {
@@ -55,21 +55,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
         navigate("/");
       }
     } catch {
-      /* UI already handles fallback */
+      setIsAdmin(false);
     }
-  }
+  }, [getToken, location.pathname, navigate]);
 
-  async function refreshMovies(): Promise<void> {
+  const refreshMovies = useCallback(async () => {
     try {
       const { data } = await api.get("/api/show/all");
       if (data.success) setMovies(data.shows);
       else toast.error(data.message);
     } catch {
-      /* silent fail is fine for homepage */
+      setMovies([]);
     }
-  }
+  }, []);
 
-  async function fetchFavoriteMovies(): Promise<void> {
+  const fetchFavoriteMovies = useCallback(async () => {
     try {
       const token = await getToken();
       const { data } = await api.get("/api/user/favorites", {
@@ -79,21 +79,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (data.success) setFavoriteMovies(data.movies);
       else toast.error(data.message);
     } catch {
-      /* avoid breaking UI */
+      setFavoriteMovies([]);
     }
-  }
+  }, [getToken]);
 
   useEffect(() => {
     refreshMovies();
-  }, []);
+  }, [refreshMovies]);
 
   useEffect(() => {
     if (userId) {
       fetchIsAdmin();
       fetchFavoriteMovies();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, fetchIsAdmin, fetchFavoriteMovies]);
 
   const value: AppContextState = {
     fetchIsAdmin,
@@ -115,7 +114,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
-export function useAppContext(): AppContextState {
+export function useAppContext() {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error("useAppContext must be used inside AppProvider");
   return ctx;

@@ -8,7 +8,6 @@ import { cacheFetch, CacheKeys, delCache } from "../utils/cache.js";
 import type { TMDBListResponse, TMDBMovie, TMDBVideo } from "../types/tmdb.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 
-/* TMDB client */
 const tmdb = axios.create({
   baseURL: "https://api.themoviedb.org/3",
   headers: { Authorization: `Bearer ${process.env.TMDB_ACCESS_TOKEN}` },
@@ -17,7 +16,7 @@ const tmdb = axios.create({
 export const getTrendingMovies = asyncHandler(async (_req: Request, res: Response) => {
   const movies = await cacheFetch<TMDBMovie[]>(CacheKeys.trending, async () => {
     const data = await tmdb.get<TMDBListResponse<TMDBMovie>>("/trending/movie/week");
-    return data.data.results.slice(0, 8); // top 8
+    return data.data.results.slice(0, 8);
   });
 
   res.json({ success: true, movies });
@@ -25,12 +24,9 @@ export const getTrendingMovies = asyncHandler(async (_req: Request, res: Respons
 
 export const getHomePageTrailers = asyncHandler(async (_req: Request, res: Response) => {
   const trailers = await cacheFetch(CacheKeys.homeTrailers, async () => {
-    // 1 page trending → 20 movies
     const data = await tmdb.get<TMDBListResponse<TMDBMovie>>("/trending/movie/week");
-
     const topEight = data.data.results.slice(0, 8);
 
-    // Fetch trailer for each movie
     const results = await Promise.all(
       topEight.map(async (movie) => {
         try {
@@ -60,7 +56,6 @@ export const getHomePageTrailers = asyncHandler(async (_req: Request, res: Respo
   res.json({ success: true, trailers });
 });
 
-/* GET /api/show/now-playing (ADMIN) */
 export const getNowPlayingMovies = asyncHandler(async (_req: Request, res: Response) => {
   const data = await tmdb.get<TMDBListResponse<TMDBMovie>>("/movie/now_playing?region=US");
 
@@ -70,7 +65,6 @@ export const getNowPlayingMovies = asyncHandler(async (_req: Request, res: Respo
   });
 });
 
-/* POST /api/show/add (ADMIN) */
 export const addShow = asyncHandler(async (req: Request, res: Response) => {
   const { movieId, showsInput, showPrice } = req.body as {
     movieId: string;
@@ -80,7 +74,6 @@ export const addShow = asyncHandler(async (req: Request, res: Response) => {
 
   let movie = await Movie.findById(movieId);
 
-  // Fetch minimal details if not saved
   if (!movie) {
     const details = await tmdb.get<TMDBMovie>(`/movie/${movieId}`);
 
@@ -98,7 +91,6 @@ export const addShow = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Build show documents
   const docs = showsInput.flatMap((s) =>
     s.time.map((t) => ({
       movie: movieId,
@@ -112,13 +104,11 @@ export const addShow = asyncHandler(async (req: Request, res: Response) => {
     await Show.insertMany(docs);
   }
 
-  // Clear trailers cache so UI updates
   delCache(CacheKeys.homeTrailers);
 
   res.json({ success: true, message: "Show added successfully" });
 });
 
-/* GET /api/show/all */
 export const getShows = asyncHandler(async (_req: Request, res: Response) => {
   const shows = await Show.find({
     showDateTime: { $gte: new Date() },
@@ -131,7 +121,11 @@ export const getShows = asyncHandler(async (_req: Request, res: Response) => {
   res.json({ success: true, shows: movies });
 });
 
-/* GET /api/show/:movieId */
+interface ShowTimeSlot {
+  time: Date;
+  showId: string;
+}
+
 export const getShow = asyncHandler(async (req: Request, res: Response) => {
   const { movieId } = req.params;
 
@@ -142,7 +136,7 @@ export const getShow = asyncHandler(async (req: Request, res: Response) => {
 
   const movie = await Movie.findById(movieId);
 
-  const grouped: Record<string, Array<{ time: Date; showId: string }>> = {};
+  const grouped: { [date: string]: ShowTimeSlot[] } = {};
 
   for (const s of shows) {
     const iso = s.showDateTime.toISOString();

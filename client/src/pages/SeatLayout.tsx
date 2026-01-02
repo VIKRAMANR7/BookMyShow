@@ -1,5 +1,5 @@
 import { ArrowRightIcon, ClockIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 
@@ -12,15 +12,15 @@ import api from "../lib/api";
 
 import type { SeatTime, ShowResponse, SeatStatusResponse } from "../types/show";
 
-export default function SeatLayout() {
-  const groupRows: string[][] = [
-    ["A", "B"],
-    ["C", "D"],
-    ["E", "F"],
-    ["G", "H"],
-    ["I", "J"],
-  ];
+const GROUP_ROWS: string[][] = [
+  ["A", "B"],
+  ["C", "D"],
+  ["E", "F"],
+  ["G", "H"],
+  ["I", "J"],
+];
 
+export default function SeatLayout() {
   const { id, date } = useParams<{ id: string; date: string }>();
 
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
@@ -30,18 +30,18 @@ export default function SeatLayout() {
 
   const { getToken, userId } = useAppContext();
 
-  async function fetchShow() {
+  const fetchShow = useCallback(async () => {
     try {
       const { data } = await api.get<ShowResponse>(`/api/show/${id}`);
       if (data.success) {
         setShowData(data);
       }
-    } catch (err) {
-      console.error("fetchShow error:", err);
+    } catch {
+      setShowData(null);
     }
-  }
+  }, [id]);
 
-  async function fetchOccupiedSeats(showId: string) {
+  const fetchOccupiedSeats = useCallback(async (showId: string) => {
     try {
       const { data } = await api.get<SeatStatusResponse>(`/api/booking/seats/${showId}`);
 
@@ -50,10 +50,10 @@ export default function SeatLayout() {
       } else {
         toast.error("Failed to load seat availability");
       }
-    } catch (err) {
-      console.error("fetchOccupiedSeats error:", err);
+    } catch {
+      setOccupiedSeats([]);
     }
-  }
+  }, []);
 
   function handleSeatClick(seatId: string) {
     if (!selectedTime) return toast("Please select a time first");
@@ -114,7 +114,7 @@ export default function SeatLayout() {
       );
 
       if (data.success) {
-        window.location.href = data.url; // Stripe redirect
+        window.location.href = data.url;
       } else {
         toast.error(data.message);
       }
@@ -126,14 +126,13 @@ export default function SeatLayout() {
 
   useEffect(() => {
     fetchShow();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchShow]);
 
   useEffect(() => {
     if (selectedTime) {
       fetchOccupiedSeats(selectedTime.showId);
     }
-  }, [selectedTime]);
+  }, [selectedTime, fetchOccupiedSeats]);
 
   if (!showData || !date) return <Loading />;
 
@@ -141,7 +140,6 @@ export default function SeatLayout() {
 
   return (
     <div className="flex flex-col md:flex-row px-6 md:px-16 lg:px-40 py-30 md:pt-50">
-      {/* TIMINGS SIDEBAR */}
       <div className="w-60 bg-primary/10 border border-primary/20 rounded-lg py-10 h-max md:sticky md:top-30">
         <p className="text-lg font-semibold px-6">Available Timings</p>
 
@@ -162,7 +160,6 @@ export default function SeatLayout() {
         </div>
       </div>
 
-      {/* SEATS LAYOUT */}
       <div className="relative flex flex-1 flex-col items-center max-md:mt-16">
         <BlurCircle top="-100px" left="-100px" />
         <BlurCircle bottom="0" right="0" />
@@ -173,14 +170,12 @@ export default function SeatLayout() {
         <p className="text-gray-400 text-sm mb-6">SCREEN SIDE</p>
 
         <div className="flex flex-col items-center text-gray-300 text-xs mt-10">
-          {/* First 2 rows */}
           <div className="grid grid-cols-2 md:grid-cols-1 gap-8 md:gap-2 mb-6">
-            {groupRows[0]!.map((row) => renderSeats(row))}
+            {GROUP_ROWS[0]!.map((row) => renderSeats(row))}
           </div>
 
-          {/* Remaining rows */}
           <div className="grid grid-cols-2 gap-11">
-            {groupRows.slice(1).map((group, idx) => (
+            {GROUP_ROWS.slice(1).map((group, idx) => (
               <div key={idx}>{group.map((r) => renderSeats(r))}</div>
             ))}
           </div>

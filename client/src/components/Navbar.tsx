@@ -14,7 +14,6 @@ function Navbar() {
   const navigate = useNavigate();
   const { favoriteMovies } = useAppContext();
 
-  /** Closes mobile menu + scrolls to top */
   const handleNavigate = useCallback(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setIsOpen(false);
@@ -24,7 +23,6 @@ function Navbar() {
 
   return (
     <header className="fixed top-0 left-0 z-50 w-full flex items-center justify-between px-6 md:px-16 lg:px-36 py-5 bg-transparent">
-      {/* Logo */}
       <Link to="/" className="max-md:flex-1">
         <img
           src={assets.logo}
@@ -33,7 +31,6 @@ function Navbar() {
         />
       </Link>
 
-      {/* Nav Menu */}
       <nav
         className={`max-md:absolute max-md:top-0 max-md:left-0 z-50
           flex flex-col md:flex-row items-center gap-8 md:px-8 py-3
@@ -41,13 +38,11 @@ function Navbar() {
           md:bg-white/10 md:border border-gray-300/20 transition-all duration-300
           ${isOpen ? "max-md:w-full" : "max-md:w-0 overflow-hidden"}`}
       >
-        {/* Mobile Close Button */}
         <XIcon
           className="md:hidden absolute top-6 right-6 size-6 cursor-pointer"
           onClick={() => setIsOpen(false)}
         />
 
-        {/* Primary Links */}
         <Link to="/" onClick={handleNavigate}>
           Home
         </Link>
@@ -68,7 +63,6 @@ function Navbar() {
         )}
       </nav>
 
-      {/* Right Section */}
       <div className="flex items-center gap-8">
         <SearchIcon className="max-md:hidden size-6 cursor-pointer" />
 
@@ -93,7 +87,6 @@ function Navbar() {
         )}
       </div>
 
-      {/* Mobile Toggle */}
       <MenuIcon
         className="max-md:ml-4 md:hidden size-8 cursor-pointer"
         onClick={() => setIsOpen((prev) => !prev)}

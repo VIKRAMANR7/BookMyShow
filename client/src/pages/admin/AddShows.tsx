@@ -1,5 +1,5 @@
 import { CheckIcon, DeleteIcon, StarIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 
 import Loading from "../../components/Loading";
@@ -10,33 +10,25 @@ import api from "../../lib/api";
 
 import type { NowPlayingMovie } from "../../types/nowPlaying";
 
-/**
- * Local structure used to collect date → time slots
- * Example:
- * {
- *   "2025-02-10": ["10:00", "15:00"]
- * }
- */
 interface DateTimeSelection {
   [date: string]: string[];
 }
 
-export default function AddShows() {
-  const currency = import.meta.env.VITE_CURRENCY ?? "₹";
+const currency = import.meta.env.VITE_CURRENCY ?? "$";
 
+export default function AddShows() {
   const { getToken, user, imageBaseUrl } = useAppContext();
 
   const [nowPlayingMovies, setNowPlayingMovies] = useState<NowPlayingMovie[]>([]);
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
 
   const [dateTimeSelection, setDateTimeSelection] = useState<DateTimeSelection>({});
-  const [dateTimeInput, setDateTimeInput] = useState(""); // "2025-02-05T10:00"
+  const [dateTimeInput, setDateTimeInput] = useState("");
 
   const [showPrice, setShowPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch current "Now Playing" movies
-  async function fetchNowPlayingMovies(): Promise<void> {
+  const fetchNowPlayingMovies = useCallback(async () => {
     try {
       const token = await getToken();
 
@@ -50,13 +42,12 @@ export default function AddShows() {
       if (data.success) {
         setNowPlayingMovies(data.movies);
       }
-    } catch (err) {
-      console.error("fetchNowPlayingMovies error:", err);
+    } catch {
+      setNowPlayingMovies([]);
     }
-  }
+  }, [getToken]);
 
-  // Add a date-time pair user selected
-  function handleDateTimeAdd(): void {
+  function handleDateTimeAdd() {
     if (!dateTimeInput) return;
 
     const [date, time] = dateTimeInput.split("T");
@@ -70,8 +61,7 @@ export default function AddShows() {
     });
   }
 
-  // Remove a single time entry under a date
-  function handleRemoveTime(date: string, time: string): void {
+  function handleRemoveTime(date: string, time: string) {
     setDateTimeSelection((prev) => {
       const existing = prev[date];
       if (!existing) return prev;
@@ -88,8 +78,7 @@ export default function AddShows() {
     });
   }
 
-  // Send new show(s) to backend
-  async function handleSubmit(): Promise<void> {
+  async function handleSubmit() {
     try {
       setSubmitting(true);
 
@@ -127,8 +116,6 @@ export default function AddShows() {
 
       if (data.success) {
         toast.success(data.message);
-
-        // reset all inputs
         setSelectedMovieId(null);
         setDateTimeSelection({});
         setShowPrice("");
@@ -136,19 +123,16 @@ export default function AddShows() {
       } else {
         toast.error(data.message);
       }
-    } catch (err) {
-      console.error("handleSubmit error:", err);
+    } catch {
       toast.error("Something went wrong");
     } finally {
       setSubmitting(false);
     }
   }
 
-  // Load movies on mount
   useEffect(() => {
     if (user) fetchNowPlayingMovies();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, fetchNowPlayingMovies]);
 
   if (nowPlayingMovies.length === 0) return <Loading />;
 
@@ -156,7 +140,6 @@ export default function AddShows() {
     <>
       <Title text1="Add" text2="Shows" />
 
-      {/* NOW PLAYING MOVIES */}
       <p className="mt-10 text-lg font-medium">Now Playing Movies</p>
 
       <div className="overflow-x-auto pb-4">
@@ -189,7 +172,6 @@ export default function AddShows() {
                   </div>
                 </div>
 
-                {/* SELECTED INDICATOR */}
                 {isSelected && (
                   <div className="absolute top-2 right-2 flex items-center justify-center bg-primary size-6 rounded">
                     <CheckIcon className="size-4 text-white" strokeWidth={2.5} />
@@ -204,7 +186,6 @@ export default function AddShows() {
         </div>
       </div>
 
-      {/* SHOW PRICE */}
       <div className="mt-8">
         <label className="block text-sm font-medium mb-2">Show Price</label>
 
@@ -222,7 +203,6 @@ export default function AddShows() {
         </div>
       </div>
 
-      {/* DATE-TIME SELECTION */}
       <div className="mt-6">
         <label className="block text-sm font-medium mb-2">Select Date & Time</label>
 
@@ -243,7 +223,6 @@ export default function AddShows() {
         </div>
       </div>
 
-      {/* SELECTED TIMES LIST */}
       {Object.keys(dateTimeSelection).length > 0 && (
         <div className="mt-6">
           <h2 className="mb-2 font-medium">Selected Date-Time</h2>
@@ -275,7 +254,6 @@ export default function AddShows() {
         </div>
       )}
 
-      {/* SUBMIT BUTTON */}
       <button
         onClick={handleSubmit}
         disabled={submitting}

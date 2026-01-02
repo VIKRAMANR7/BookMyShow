@@ -12,13 +12,9 @@ interface DateTimeItem {
 
 interface DateSelectProps {
   dateTime: Record<string, DateTimeItem[]>;
-  id: string; // movieId
+  id: string;
 }
 
-/**
- * Allows users to pick a date for the selected movie.
- * Time selection happens on the next screen.
- */
 export default function DateSelect({ dateTime, id }: DateSelectProps) {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -29,30 +25,24 @@ export default function DateSelect({ dateTime, id }: DateSelectProps) {
       return;
     }
 
-    // Navigate to seat layout page with selected date
     navigate(`/movies/${id}/${selectedDate}`);
     scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const dates = Object.keys(dateTime); // ["2025-02-11", "2025-02-12", ...]
+  const dates = Object.keys(dateTime);
 
   return (
     <section id="dateSelect" className="pt-30">
-      <div
-        className="relative flex flex-col md:flex-row items-center justify-between gap-10 p-8
-                      bg-primary/10 border border-primary/20 rounded-lg overflow-hidden"
-      >
+      <div className="relative flex flex-col md:flex-row items-center justify-between gap-10 p-8 bg-primary/10 border border-primary/20 rounded-lg overflow-hidden">
         <BlurCircle top="-100px" left="-100px" />
         <BlurCircle top="100px" right="0" />
 
-        {/* Left Section — Date List */}
         <div>
           <p className="text-lg font-semibold">Choose Date</p>
 
           <div className="flex items-center gap-6 text-sm mt-5">
             <ChevronLeftIcon width={28} />
 
-            {/* Date buttons */}
             <div className="grid grid-cols-3 md:flex flex-wrap md:max-w-lg gap-4">
               {dates.map((date) => {
                 const parsed = new Date(date);
@@ -79,7 +69,6 @@ export default function DateSelect({ dateTime, id }: DateSelectProps) {
           </div>
         </div>
 
-        {/* Right Section — CTA */}
         <button
           onClick={handleBook}
           className="bg-primary text-white px-8 py-2 mt-6 rounded hover:bg-primary/90 transition-all cursor-pointer"

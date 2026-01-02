@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 import Loading from "../../components/Loading";
 import Title from "../../components/admin/Title";
@@ -7,14 +7,15 @@ import { dateFormat } from "../../lib/dateFormat";
 import type { AdminBookingItem } from "../../types/booking";
 import api from "../../lib/api";
 
+const currency = import.meta.env.VITE_CURRENCY ?? "$";
+
 export default function ListBookings() {
   const { getToken, userId } = useAppContext();
-  const currency = import.meta.env.VITE_CURRENCY ?? "₹";
 
   const [bookings, setBookings] = useState<AdminBookingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  async function fetchAllBookings(): Promise<void> {
+  const fetchAllBookings = useCallback(async () => {
     try {
       const token = await getToken();
 
@@ -25,19 +26,18 @@ export default function ListBookings() {
       if (data.success) {
         setBookings(data.bookings);
       }
-    } catch (err) {
-      console.error("fetchAllBookings error:", err);
+    } catch {
+      setBookings([]);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [getToken]);
 
   useEffect(() => {
     if (userId) {
       fetchAllBookings();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, fetchAllBookings]);
 
   if (isLoading) return <Loading />;
 
@@ -64,13 +64,9 @@ export default function ListBookings() {
                 className="border-b border-primary/20 bg-primary/5 even:bg-primary/10"
               >
                 <td className="p-2 min-w-45 pl-5">{b.user?.name ?? "Unknown User"}</td>
-
                 <td className="p-2">{b.show.movie.title}</td>
-
                 <td className="p-2">{dateFormat(b.show.showDateTime)}</td>
-
                 <td className="p-2">{b.bookedSeats.join(", ")}</td>
-
                 <td className="p-2">
                   {currency} {b.amount}
                 </td>

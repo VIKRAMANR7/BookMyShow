@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+const REDIRECT_DELAY_MS = 8000;
+
 export default function Loading() {
   const { nextUrl } = useParams<{ nextUrl: string }>();
   const navigate = useNavigate();
@@ -8,10 +10,9 @@ export default function Loading() {
   useEffect(() => {
     if (!nextUrl) return;
 
-    // Delay navigation for 8 seconds (Stripe return → loading page)
     const timer = setTimeout(() => {
       navigate(`/${nextUrl}`);
-    }, 8000);
+    }, REDIRECT_DELAY_MS);
 
     return () => clearTimeout(timer);
   }, [nextUrl, navigate]);

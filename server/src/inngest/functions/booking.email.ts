@@ -29,7 +29,6 @@ export const sendBookingConfirmationEmail = inngest.createFunction(
 
     if (!booking || !booking.show || !booking.user) return;
 
-    // Cast using `unknown` first to prevent TS structural overlap errors
     const show = booking.show as unknown as PopulatedShow;
     const user = booking.user as unknown as PopulatedUser;
 
@@ -45,7 +44,7 @@ export const sendBookingConfirmationEmail = inngest.createFunction(
           <h2>Hello ${user.name},</h2>
           <p>Your booking for <strong>${show.movie.title}</strong> is confirmed.</p>
           <p><strong>Showtime:</strong> ${dateString}</p>
-          <p>Enjoy your movie! 🍿</p>
+          <p>Enjoy your movie!</p>
         </div>
       `,
     });

@@ -1,13 +1,3 @@
-import "dotenv/config";
-
-function requireEnv(key: string): string {
-  const value = process.env[key];
-  if (!value) {
-    throw new Error(`❌ Missing environment variable: ${key}`);
-  }
-  return value;
-}
-
 const requiredEnvs = [
   "MONGODB_URI",
   "CLERK_SECRET_KEY",
@@ -19,8 +9,13 @@ const requiredEnvs = [
   "SENDER_EMAIL",
   "UPSTASH_REDIS_REST_URL",
   "UPSTASH_REDIS_REST_TOKEN",
-] as const;
+];
 
-export function validateEnv(): void {
-  requiredEnvs.forEach(requireEnv);
+export function validateEnv() {
+  const missing = requiredEnvs.filter((key) => !process.env[key]);
+
+  if (missing.length > 0) {
+    console.error(`Missing environment variables: ${missing.join(", ")}`);
+    process.exit(1);
+  }
 }

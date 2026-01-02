@@ -1,5 +1,5 @@
 import { Heart, PlayCircleIcon, StarIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -22,14 +22,14 @@ export default function MovieDetails() {
   const { movies, getToken, userId, fetchFavoriteMovies, favoriteMovies, imageBaseUrl } =
     useAppContext();
 
-  async function fetchShowDetails() {
+  const fetchShowDetails = useCallback(async () => {
     try {
       const { data } = await api.get<ShowResponse>(`/api/show/${movieId}`);
       if (data.success) setShowData(data);
-    } catch (err) {
-      console.error("fetchShowDetails error:", err);
+    } catch {
+      setShowData(null);
     }
-  }
+  }, [movieId]);
 
   async function handleFavorite() {
     try {
@@ -46,15 +46,14 @@ export default function MovieDetails() {
         await fetchFavoriteMovies();
         toast.success(data.message);
       }
-    } catch (err) {
-      console.error("handleFavorite error:", err);
+    } catch {
+      toast.error("Failed to update favorite");
     }
   }
 
   useEffect(() => {
     if (movieId) fetchShowDetails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [movieId]);
+  }, [movieId, fetchShowDetails]);
 
   if (!showData) return <Loading />;
 

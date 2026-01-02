@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 
 import BlurCircle from "../components/BlurCircle";
@@ -9,15 +9,15 @@ import { timeFormat } from "../lib/timeFormat";
 import type { BookingItem } from "../types/booking";
 import api from "../lib/api";
 
-export default function MyBookings() {
-  const currency = import.meta.env.VITE_CURRENCY ?? "₹";
+const currency = import.meta.env.VITE_CURRENCY ?? "$";
 
+export default function MyBookings() {
   const { getToken, userId, imageBaseUrl } = useAppContext();
 
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  async function getMyBookings(): Promise<void> {
+  const getMyBookings = useCallback(async () => {
     try {
       const token = await getToken();
       const { data } = await api.get("/api/user/bookings", {
@@ -27,19 +27,18 @@ export default function MyBookings() {
       if (data.success) {
         setBookings(data.bookings);
       }
-    } catch (err) {
-      console.error("getMyBookings error:", err);
+    } catch {
+      setBookings([]);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [getToken]);
 
   useEffect(() => {
     if (userId) {
       getMyBookings();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, getMyBookings]);
 
   if (isLoading) return <Loading />;
 

@@ -1,7 +1,3 @@
-# =========================================
-#  GLOBAL IGNORES — CLIENT + SERVER
-# =========================================
-
 # Node modules
 node_modules/
 
@@ -42,21 +38,4 @@ Thumbs.db
 *.swp
 *.swo
 
-# =========================================
-#  PROJECT STRUCTURE (MONOREPO)
-# =========================================
-
-# Client-side (Vite + React)
-client/node_modules/
-client/dist/
-client/.vite/
-client/.env
-client/.env.*
-!client/.env.example
-
-# Server-side (Express + TS)
-server/node_modules/
-server/dist/
-server/.env
-server/.env.*
-!server/.env.example
+pnpm-lock.yaml

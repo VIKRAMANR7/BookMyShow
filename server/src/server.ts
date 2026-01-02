@@ -22,15 +22,9 @@ await connectDB();
 
 const app = express();
 
-const allowedOrigins = [
-  process.env.CLIENT_URL ?? "",
-  "http://localhost:5173",
-  "https://book-my-show-green-seven.vercel.app",
-].filter(Boolean);
-
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: ["http://localhost:5173", "https://book-my-show-green-seven.vercel.app"],
     credentials: true,
   })
 );
@@ -39,11 +33,6 @@ app.use("/api/stripe", express.raw({ type: "application/json" }), stripeWebhooks
 
 app.use(express.json());
 app.use(clerkMiddleware());
-
-app.use((req: Request, _res: Response, next) => {
-  console.log(`[${req.method}] ${req.path}`);
-  next();
-});
 
 app.get("/", (_req: Request, res: Response) => {
   res.send("Server is Live");
@@ -61,7 +50,7 @@ app.use(errorHandler);
 const PORT = Number(process.env.PORT) || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 
 export default app;

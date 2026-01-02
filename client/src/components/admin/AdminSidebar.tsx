@@ -9,23 +9,21 @@ interface AdminNavItem {
   icon: LucideIcon;
 }
 
+const admin = {
+  name: "Admin User",
+  avatar: assets.profile,
+};
+
+const navItems: AdminNavItem[] = [
+  { name: "Dashboard", path: "/admin", icon: LayoutDashboardIcon },
+  { name: "Add Shows", path: "/admin/add-shows", icon: PlusSquareIcon },
+  { name: "List Shows", path: "/admin/list-shows", icon: ListIcon },
+  { name: "List Bookings", path: "/admin/list-bookings", icon: ListCollapseIcon },
+];
+
 export default function AdminSidebar() {
-  // Static admin placeholder
-  const admin = {
-    name: "Admin User",
-    avatar: assets.profile,
-  };
-
-  const navItems: AdminNavItem[] = [
-    { name: "Dashboard", path: "/admin", icon: LayoutDashboardIcon },
-    { name: "Add Shows", path: "/admin/add-shows", icon: PlusSquareIcon },
-    { name: "List Shows", path: "/admin/list-shows", icon: ListIcon },
-    { name: "List Bookings", path: "/admin/list-bookings", icon: ListCollapseIcon },
-  ];
-
   return (
     <aside className="h-[calc(100vh-64px)] md:flex flex-col items-center pt-8 max-w-13 md:max-w-60 w-full border-r border-gray-300/20 text-sm">
-      {/* Admin Avatar */}
       <img
         src={admin.avatar}
         alt="Admin avatar"
@@ -34,7 +32,6 @@ export default function AdminSidebar() {
 
       <p className="mt-2 text-base max-md:hidden">{admin.name}</p>
 
-      {/* Navigation Links */}
       <div className="w-full mt-6">
         {navItems.map((item) => (
           <NavLink
@@ -53,7 +50,6 @@ export default function AdminSidebar() {
                 <item.icon className="size-5" />
                 <span className="max-md:hidden">{item.name}</span>
 
-                {/* Right highlight bar */}
                 <span
                   className={`absolute right-0 w-1.5 h-10 rounded-l ${
                     isActive ? "bg-primary" : ""

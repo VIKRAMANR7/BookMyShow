@@ -4,7 +4,6 @@ import Booking from "../models/Booking.js";
 import Movie from "../models/Movie.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 
-/** Extract favorites from Clerk metadata */
 interface UserPrivateMetadata {
   favorites?: string[];
 }
@@ -16,6 +15,7 @@ function getFavoriteIds(user: User): string[] {
 
 export const getUserBookings = asyncHandler(async (req: Request, res: Response) => {
   const { userId } = req.auth();
+
   if (!userId) {
     res.status(401).json({ success: false, message: "Unauthorized" });
     return;
@@ -33,7 +33,7 @@ export const getUserBookings = asyncHandler(async (req: Request, res: Response) 
 
 export const updateFavorite = asyncHandler(async (req: Request, res: Response) => {
   const { userId } = req.auth();
-  const movieId = req.body.movieId as string | undefined;
+  const { movieId } = req.body;
 
   if (!userId || !movieId) {
     res.status(400).json({ success: false, message: "Invalid request" });
@@ -56,6 +56,7 @@ export const updateFavorite = asyncHandler(async (req: Request, res: Response) =
 
 export const getFavorites = asyncHandler(async (req: Request, res: Response) => {
   const { userId } = req.auth();
+
   if (!userId) {
     res.status(401).json({ success: false, message: "Unauthorized" });
     return;

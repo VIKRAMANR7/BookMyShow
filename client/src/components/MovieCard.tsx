@@ -3,16 +3,10 @@ import { useNavigate } from "react-router-dom";
 
 import { useAppContext } from "../context/AppContext";
 import { timeFormat } from "../lib/timeFormat";
-
 import type { MovieItem } from "../types/movie";
 
-export type MovieCardData = Pick<
-  MovieItem,
-  "_id" | "title" | "backdrop_path" | "release_date" | "genres" | "runtime" | "vote_average"
->;
-
 interface MovieCardProps {
-  movie: MovieCardData;
+  movie: MovieItem;
 }
 
 export default function MovieCard({ movie }: MovieCardProps) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Loading from "../../components/Loading";
 import Title from "../../components/admin/Title";
 import { useAppContext } from "../../context/AppContext";
@@ -6,15 +6,15 @@ import { dateFormat } from "../../lib/dateFormat";
 import type { AdminShowItem } from "../../types/show";
 import api from "../../lib/api";
 
-export default function ListShows() {
-  const currency = import.meta.env.VITE_CURRENCY ?? "₹";
+const currency = import.meta.env.VITE_CURRENCY ?? "$";
 
+export default function ListShows() {
   const { getToken, user } = useAppContext();
 
   const [shows, setShows] = useState<AdminShowItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  async function getAllShows(): Promise<void> {
+  const getAllShows = useCallback(async () => {
     try {
       const token = await getToken();
       const { data } = await api.get<{ shows: AdminShowItem[] }>("/api/admin/all-shows", {
@@ -22,19 +22,18 @@ export default function ListShows() {
       });
 
       setShows(data.shows);
-    } catch (err) {
-      console.error("getAllShows error:", err);
+    } catch {
+      setShows([]);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [getToken]);
 
   useEffect(() => {
     if (user) {
       getAllShows();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, getAllShows]);
 
   if (isLoading) return <Loading />;
 
@@ -55,8 +54,6 @@ export default function ListShows() {
 
           <tbody className="text-sm font-light">
             {shows.map((show) => {
-              // NOTE:
-              // occupiedSeats includes *reserved* seats (paid + unpaid)
               const reservedCount = Object.keys(show.occupiedSeats).length;
 
               return (
@@ -65,11 +62,8 @@ export default function ListShows() {
                   className="border-b border-primary/10 bg-primary/5 even:bg-primary/10"
                 >
                   <td className="p-2 min-w-45 pl-5">{show.movie.title}</td>
-
                   <td className="p-2">{dateFormat(show.showDateTime)}</td>
-
                   <td className="p-2">{reservedCount}</td>
-
                   <td className="p-2">
                     {currency} {reservedCount * show.showPrice}
                   </td>

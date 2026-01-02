@@ -1,4 +1,4 @@
-export function isoTimeFormat(dateTime: string | number | Date): string {
+export function isoTimeFormat(dateTime: string | number | Date) {
   const date = new Date(dateTime);
 
   return date.toLocaleTimeString("en-US", {
