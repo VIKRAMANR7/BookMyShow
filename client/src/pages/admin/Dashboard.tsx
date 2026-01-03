@@ -5,7 +5,7 @@ import {
   StarIcon,
   UsersIcon,
 } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 import Title from "../../components/admin/Title";
@@ -31,34 +31,32 @@ export default function Dashboard() {
 
   const [loading, setLoading] = useState(true);
 
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      const token = await getToken();
-
-      const { data } = await api.get<{
-        success: boolean;
-        dashboardData: DashboardData;
-      }>("/api/admin/dashboard", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (data.success) {
-        setDashboardData(data.dashboardData);
-      } else {
-        toast.error("Failed to load dashboard");
-      }
-    } catch {
-      toast.error("Error fetching dashboard");
-    } finally {
-      setLoading(false);
-    }
-  }, [getToken]);
-
   useEffect(() => {
-    if (user) {
-      fetchDashboardData();
+    async function fetchDashboardData() {
+      try {
+        const token = await getToken();
+
+        const { data } = await api.get<{
+          success: boolean;
+          dashboardData: DashboardData;
+        }>("/api/admin/dashboard", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (data.success) {
+          setDashboardData(data.dashboardData);
+        } else {
+          toast.error("Failed to load dashboard");
+        }
+      } catch {
+        toast.error("Error fetching dashboard");
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [user, fetchDashboardData]);
+
+    if (user) fetchDashboardData();
+  }, [user, getToken]);
 
   if (loading) return <Loading />;
 

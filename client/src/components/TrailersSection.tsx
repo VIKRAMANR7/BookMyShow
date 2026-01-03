@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import ReactPlayer from "react-player";
 import { PlayCircleIcon } from "lucide-react";
 
@@ -24,26 +24,26 @@ export default function TrailersSection() {
   const [trailers, setTrailers] = useState<TrailerItem[]>([]);
   const [currentTrailer, setCurrentTrailer] = useState<TrailerItem | null>(null);
 
-  const loadTrailers = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const { data } = await api.get<TrailerResponse>("/api/show/home-trailers", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (data.success && Array.isArray(data.trailers) && data.trailers.length > 0) {
-        setTrailers(data.trailers);
-        setCurrentTrailer(data.trailers[0] ?? null);
-      }
-    } catch {
-      setTrailers([]);
-      setCurrentTrailer(null);
-    }
-  }, [getToken]);
-
   useEffect(() => {
+    async function loadTrailers() {
+      try {
+        const token = await getToken();
+        const { data } = await api.get<TrailerResponse>("/api/show/home-trailers", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (data.success && Array.isArray(data.trailers) && data.trailers.length > 0) {
+          setTrailers(data.trailers);
+          setCurrentTrailer(data.trailers[0] ?? null);
+        }
+      } catch {
+        setTrailers([]);
+        setCurrentTrailer(null);
+      }
+    }
+
     loadTrailers();
-  }, [loadTrailers]);
+  }, [getToken]);
 
   if (!currentTrailer) return null;
 

@@ -1,5 +1,5 @@
 import { ArrowRightIcon, ClockIcon } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 
@@ -30,30 +30,42 @@ export default function SeatLayout() {
 
   const { getToken, userId } = useAppContext();
 
-  const fetchShow = useCallback(async () => {
-    try {
-      const { data } = await api.get<ShowResponse>(`/api/show/${id}`);
-      if (data.success) {
-        setShowData(data);
+  useEffect(() => {
+    async function fetchShow() {
+      try {
+        const { data } = await api.get<ShowResponse>(`/api/show/${id}`);
+        if (data.success) {
+          setShowData(data);
+        }
+      } catch {
+        setShowData(null);
       }
-    } catch {
-      setShowData(null);
     }
+
+    if (id) fetchShow();
   }, [id]);
 
-  const fetchOccupiedSeats = useCallback(async (showId: string) => {
-    try {
-      const { data } = await api.get<SeatStatusResponse>(`/api/booking/seats/${showId}`);
+  useEffect(() => {
+    async function fetchOccupiedSeats() {
+      if (!selectedTime) return;
 
-      if (data.success) {
-        setOccupiedSeats(data.occupiedSeats);
-      } else {
-        toast.error("Failed to load seat availability");
+      try {
+        const { data } = await api.get<SeatStatusResponse>(
+          `/api/booking/seats/${selectedTime.showId}`
+        );
+
+        if (data.success) {
+          setOccupiedSeats(data.occupiedSeats);
+        } else {
+          toast.error("Failed to load seat availability");
+        }
+      } catch {
+        setOccupiedSeats([]);
       }
-    } catch {
-      setOccupiedSeats([]);
     }
-  }, []);
+
+    fetchOccupiedSeats();
+  }, [selectedTime]);
 
   function handleSeatClick(seatId: string) {
     if (!selectedTime) return toast("Please select a time first");
@@ -123,16 +135,6 @@ export default function SeatLayout() {
       toast.error(message);
     }
   }
-
-  useEffect(() => {
-    fetchShow();
-  }, [fetchShow]);
-
-  useEffect(() => {
-    if (selectedTime) {
-      fetchOccupiedSeats(selectedTime.showId);
-    }
-  }, [selectedTime, fetchOccupiedSeats]);
 
   if (!showData || !date) return <Loading />;
 

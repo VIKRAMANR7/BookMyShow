@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+
 import Loading from "../../components/Loading";
 import Title from "../../components/admin/Title";
 import { useAppContext } from "../../context/AppContext";
@@ -14,26 +15,24 @@ export default function ListShows() {
   const [shows, setShows] = useState<AdminShowItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const getAllShows = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const { data } = await api.get<{ shows: AdminShowItem[] }>("/api/admin/all-shows", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setShows(data.shows);
-    } catch {
-      setShows([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getToken]);
-
   useEffect(() => {
-    if (user) {
-      getAllShows();
+    async function getAllShows() {
+      try {
+        const token = await getToken();
+        const { data } = await api.get<{ shows: AdminShowItem[] }>("/api/admin/all-shows", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setShows(data.shows);
+      } catch {
+        setShows([]);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [user, getAllShows]);
+
+    if (user) getAllShows();
+  }, [user, getToken]);
 
   if (isLoading) return <Loading />;
 

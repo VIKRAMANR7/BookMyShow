@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, CalendarIcon } from "lucide-react";
 
@@ -29,34 +29,34 @@ export default function HeroSection() {
   const [heroMovies, setHeroMovies] = useState<HeroMovie[]>([]);
   const [index, setIndex] = useState(0);
 
-  const loadMovies = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const { data } = await api.get("/api/show/trending", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (data.success && Array.isArray(data.movies) && data.movies.length > 0) {
-        const top8 = data.movies.slice(0, 8);
-
-        const mappedMovies: HeroMovie[] = top8.map((m: TMDBTrendingMovie) => ({
-          title: m.title,
-          year: Number(m.release_date?.split("-")[0]),
-          genres: m.genre_ids?.map((id) => GENRE_MAP[id]) ?? [],
-          description: m.overview,
-          backdrop: `https://image.tmdb.org/t/p/original${m.backdrop_path}`,
-        }));
-
-        setHeroMovies(mappedMovies);
-      }
-    } catch {
-      setHeroMovies([]);
-    }
-  }, [getToken]);
-
   useEffect(() => {
+    async function loadMovies() {
+      try {
+        const token = await getToken();
+        const { data } = await api.get("/api/show/trending", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (data.success && Array.isArray(data.movies) && data.movies.length > 0) {
+          const top8 = data.movies.slice(0, 8);
+
+          const mappedMovies: HeroMovie[] = top8.map((m: TMDBTrendingMovie) => ({
+            title: m.title,
+            year: Number(m.release_date?.split("-")[0]),
+            genres: m.genre_ids?.map((id) => GENRE_MAP[id]) ?? [],
+            description: m.overview,
+            backdrop: `https://image.tmdb.org/t/p/original${m.backdrop_path}`,
+          }));
+
+          setHeroMovies(mappedMovies);
+        }
+      } catch {
+        setHeroMovies([]);
+      }
+    }
+
     loadMovies();
-  }, [loadMovies]);
+  }, [getToken]);
 
   useEffect(() => {
     if (heroMovies.length === 0) return;

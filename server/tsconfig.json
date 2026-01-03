@@ -14,12 +14,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "forceConsistentCasingInFileNames": true,
-
-    "sourceMap": true,
-
-    "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "forceConsistentCasingInFileNames": true
   },
 
   "include": ["src"],

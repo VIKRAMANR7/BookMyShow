@@ -1,5 +1,5 @@
 import { CheckIcon, DeleteIcon, StarIcon } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 import Loading from "../../components/Loading";
@@ -28,24 +28,28 @@ export default function AddShows() {
   const [showPrice, setShowPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchNowPlayingMovies = useCallback(async () => {
-    try {
-      const token = await getToken();
+  useEffect(() => {
+    async function fetchNowPlayingMovies() {
+      try {
+        const token = await getToken();
 
-      const { data } = await api.get<{
-        success: boolean;
-        movies: NowPlayingMovie[];
-      }>("/api/show/now-playing", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+        const { data } = await api.get<{
+          success: boolean;
+          movies: NowPlayingMovie[];
+        }>("/api/show/now-playing", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-      if (data.success) {
-        setNowPlayingMovies(data.movies);
+        if (data.success) {
+          setNowPlayingMovies(data.movies);
+        }
+      } catch {
+        setNowPlayingMovies([]);
       }
-    } catch {
-      setNowPlayingMovies([]);
     }
-  }, [getToken]);
+
+    if (user) fetchNowPlayingMovies();
+  }, [user, getToken]);
 
   function handleDateTimeAdd() {
     if (!dateTimeInput) return;
@@ -129,10 +133,6 @@ export default function AddShows() {
       setSubmitting(false);
     }
   }
-
-  useEffect(() => {
-    if (user) fetchNowPlayingMovies();
-  }, [user, fetchNowPlayingMovies]);
 
   if (nowPlayingMovies.length === 0) return <Loading />;
 

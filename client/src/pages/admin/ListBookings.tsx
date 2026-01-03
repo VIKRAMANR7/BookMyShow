@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 
 import Loading from "../../components/Loading";
 import Title from "../../components/admin/Title";
@@ -15,29 +15,27 @@ export default function ListBookings() {
   const [bookings, setBookings] = useState<AdminBookingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchAllBookings = useCallback(async () => {
-    try {
-      const token = await getToken();
-
-      const { data } = await api.get("/api/admin/all-bookings", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (data.success) {
-        setBookings(data.bookings);
-      }
-    } catch {
-      setBookings([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getToken]);
-
   useEffect(() => {
-    if (userId) {
-      fetchAllBookings();
+    async function fetchAllBookings() {
+      try {
+        const token = await getToken();
+
+        const { data } = await api.get("/api/admin/all-bookings", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (data.success) {
+          setBookings(data.bookings);
+        }
+      } catch {
+        setBookings([]);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [userId, fetchAllBookings]);
+
+    if (userId) fetchAllBookings();
+  }, [userId, getToken]);
 
   if (isLoading) return <Loading />;
 

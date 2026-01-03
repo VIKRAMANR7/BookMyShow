@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import BlurCircle from "../components/BlurCircle";
@@ -17,28 +17,26 @@ export default function MyBookings() {
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const getMyBookings = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const { data } = await api.get("/api/user/bookings", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (data.success) {
-        setBookings(data.bookings);
-      }
-    } catch {
-      setBookings([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getToken]);
-
   useEffect(() => {
-    if (userId) {
-      getMyBookings();
+    async function getMyBookings() {
+      try {
+        const token = await getToken();
+        const { data } = await api.get("/api/user/bookings", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (data.success) {
+          setBookings(data.bookings);
+        }
+      } catch {
+        setBookings([]);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [userId, getMyBookings]);
+
+    if (userId) getMyBookings();
+  }, [userId, getToken]);
 
   if (isLoading) return <Loading />;
 
